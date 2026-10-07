@@ -1,0 +1,42 @@
+body {
+    font-family: sans-serif;
+  }
+  
+  #log {
+    background: #f0f0f0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    width: 500px;
+    height: 120px;
+    overflow-y: scroll;
+    margin-bottom: 20px; /* ✅ Add this */
+  }
+  
+
+  #main {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  
+  #canvas-container canvas {
+    border: 1px solid #ccc;
+  }
+
+  #log {
+    background: #f0f0f0;
+    padding: 10px;
+    border: 1px solid #ccc;
+    resize: vertical;       /* 👈 allows vertical resizing */
+    overflow: auto;         /* 👈 scrolls if text exceeds size */
+    min-height: 100px;      /* 👈 optional lower limit */
+    max-height: 500px;      /* 👈 optional upper limit */
+    width: 100%;
+    box-sizing: border-box;
+    font-family: monospace;
+  }
+  button {
+    margin-right: 10px;
+    margin-top: 5px;
+  }
+  

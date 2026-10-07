@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Virtual Robot Box</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js" defer></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <h2>Virtual Robot Simulation</h2>
+  <div id="main">
+    <div id="ui">
+      <pre id="log" contenteditable="false"></pre>
+      <p id="batteryDisplay">🔋 Battery: 100%</p>
+      <h3>Command Console</h3>
+      <textarea id="userCode" rows="6" cols="60">// Write robot code here
+moveForward();
+turnRight();
+scan();
+deliver("Z-101");
+      </textarea>
+      <br />
+      <h3>Select Starting Building</h3>
+      <select id="buildingDropdown" disabled></select>
+      <h3>Select Delivery Targets</h3>
+<select id="deliveryTargetSelector" multiple size="6" style="width: 250px;"></select>
+      <br>
+      <h3>Stair Routing Strategy</h3>
+      <select id="routingStrategyDropdown">
+        <option value="block">Option A: ❌ Block stairs</option>
+        <option value="prefer">Option B: ⚠️ Prefer non-stairs, fallback to stairs</option>
+        <option value="allow" selected>Option C: ✅ Allow stairs</option>
+      </select>
+      <br>
+      <h3>Bot Commands</h3>
+      <h3>Robot Speed</h3>
+<select id="speedSelector">
+  <option value="2000">🐢 Slow</option>
+  <option value="1000" selected>🚶 Normal</option>
+  <option value="400">🏃 Fast</option>
+  <option value="25">🚀 Ludicrous</option>
+</select>
+      <button onclick="runSelectedDeliveryQueue()">Run Delivery Queue</button>
+      <button onclick="runUserCode()">Run Code</button>
+      <button onclick="resetRobot()">Reset Bot</button>
+      <br>
+      <h3>Map Commands</h3>
+      <button onclick="toggleNavigableOverlay()">Show Navigable Zones</button>
+      <button onclick="downloadTelemetry()">Download Telemetry CSV</button>
+      <h3>Upload GeoJSON File</h3>
+      <input type="file" id="geojsonFile" accept=".geojson" />
+      <button onclick="handleGeoJSONUpload()">Parse GeoJSON to Grid</button>
+    </div>
+    <div id="canvas-container"></div>
+  </div>
+
+  <script src="robot.js" defer></script>
+  <script src="api.js" defer></script>
+  <script src="console.js" defer></script>
+  <script src="exampleBot.js" defer></script>
+  <script src="runner.js" defer></script>
+  <script src="sketch.js" defer></script>
+  <script src="planner.js" defer></script>
+  <script src="security.js" defer></script>
+  
+  <div id="successPopup" style="display:none; position:fixed; top:20px; left:50%; transform:translateX(-50%); background-color:#4CAF50; color:white; padding:20px; border-radius:8px; z-index:999;">
+    🎉 All deliveries complete!
+  </div>
+
+  <script>
+    window.currentHub = null;
+    let showNavigableOverlay = false;
+    let routingStrategy = "allow"; 
+
+    function refreshNavigableFlags() {
+  for (let y = 0; y < mapGrid.length; y++) {
+    for (let x = 0; x < mapGrid[0].length; x++) {
+      const tile = mapGrid[y][x];
+      if (!tile) continue;
+      tile.navigable = isNavigable(tile.type);
+    }
+  }
+}
+
+    function toggleNavigableOverlay() {
+      showNavigableOverlay = !showNavigableOverlay;
+      const button = document.querySelector("button[onclick='toggleNavigableOverlay()']");
+      if (button) {
+        button.textContent = showNavigableOverlay ? "Hide Navigable Zones" : "Show Navigable Zones";
+      }
+    }
+
+    function showSuccessMessage() {
+      const popup = document.getElementById("successPopup");
+      if (!popup) return;
+      popup.style.display = "block";
+      setTimeout(() => {
+        popup.style.display = "none";
+      }, 4000);
+    }
+
+    function downloadTelemetry() {
+  const telemetryData = window.allTelemetryRuns || [];
+  if (telemetryData.length === 0) {
+    alert("No telemetry data to export.");
+    return;
+  }
+
+  const headers = [
+    "stepIndex",
+    "x",
+    "y",
+    "tileType",
+    "batteryDrainThisStep",
+    "batteryRemaining",
+    "currentOrderId",
+    "isAtGoal",
+    "distanceToGoal",
+    "rechargeTriggered",
+    "rechargeCount",
+    "completedDeliveries",
+    "totalDeliveries",
+    "timeElapsedSinceStart"
+  ];
+
+  const csvRows = [headers.join(",")];
+
+  for (const row of telemetryData) {
+    const csvRow = headers.map(h => {
+      const val = row[h];
+      return typeof val === "object" ? JSON.stringify(val).replace(/,/g, ";") : String(val);
+    });
+    csvRows.push(csvRow.join(","));
+  }
+
+  const blob = new Blob([csvRows.join("\n")], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `telemetry_${Date.now()}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+    
+    let currentHub = null;  
+
+    function handleGeoJSONUpload() {
+      const input = document.getElementById("geojsonFile");
+      const file = input.files[0];
+      if (!file) return alert("No file selected.");
+
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const raw = e.target.result;
+          console.log("📄 File loaded, length:", raw.length);
+          const geojson = JSON.parse(raw);
+          console.log("✅ GeoJSON parsed");
+          convertGeoJSONToGrid(geojson);
+        } catch (err) {
+          console.error("❌ Failed to parse GeoJSON:", err.message);
+          alert("❌ Failed to parse GeoJSON: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function populateBuildingDropdown() {
+  const hubSelect = document.getElementById("buildingDropdown");
+  const deliverySelect = document.getElementById("deliveryTargetSelector");
+
+  if (!hubSelect || !deliverySelect) return;
+
+  hubSelect.innerHTML = "";
+  deliverySelect.innerHTML = "";
+
+  for (const building of window.namedBuildings || []) {
+    const opt = document.createElement("option");
+    opt.value = building.name;
+    opt.textContent = building.name;
+
+    hubSelect.appendChild(opt);
+    deliverySelect.appendChild(opt.cloneNode(true)); // reuse for delivery
+  }
+}
+
+    function computeBoundsFromGeoJSON(features) {
+  let minLat = Infinity, maxLat = -Infinity;
+  let minLng = Infinity, maxLng = -Infinity;
+
+  for (const feature of features) {
+    const coords = feature.geometry?.coordinates;
+    if (!coords) continue;
+
+    const allCoords = (feature.geometry.type === "Polygon")
+      ? coords[0]
+      : feature.geometry.type === "MultiPolygon"
+        ? coords.flat(2)
+        : feature.geometry.type === "LineString"
+          ? coords
+          : [];
+
+    for (const [lng, lat] of allCoords) {
+      if (typeof lng !== "number" || typeof lat !== "number") continue;
+      minLat = Math.min(minLat, lat);
+      maxLat = Math.max(maxLat, lat);
+      minLng = Math.min(minLng, lng);
+      maxLng = Math.max(maxLng, lng);
+    }
+  }
+
+  return { minLat, maxLat, minLng, maxLng };
+}
+    function convertGeoJSONToGrid(geojson) {
+      console.log("📥 Received GeoJSON with", geojson.features?.length, "features");
+
+      const bounds = computeBoundsFromGeoJSON(geojson.features);
+if (!isFinite(bounds.minLat) || !isFinite(bounds.minLng)) {
+  alert("⚠️ GeoJSON has no valid geometry coordinates.");
+  return;
+}
+
+const ZOOM_BOX = {
+  minLng: bounds.minLng,
+  minLat: bounds.minLat,
+  maxLng: bounds.maxLng,
+  maxLat: bounds.maxLat
+};
+      const width = 500, height = 300;
+      if (width * height > 800000) {
+        console.warn("⚠️ Grid too large — skipping rendering to protect performance.");
+        alert("⚠️ Grid too large — reduce zoom or resolution.");
+        return;
+      }
+
+      const [minLng, minLat, maxLng, maxLat] = [
+        ZOOM_BOX.minLng, ZOOM_BOX.minLat, ZOOM_BOX.maxLng, ZOOM_BOX.maxLat
+      ];
+      console.log("🗺️ Using fixed zoom bounds:", { minLng, minLat, maxLng, maxLat });
+
+      const mapGrid = Array.from({ length: height }, () =>
+        Array.from({ length: width }, () => ({ type: "empty" }))
+      );
+
+      let filledTiles = 0;
+
+      function drawLine(x0, y0, x1, y1, type) {
+        let x = x0, y = y0;
+        while (x !== x1 || y !== y1) {
+          if (x >= 0 && x < width && y >= 0 && y < height) {
+            mapGrid[y][x] = {
+              type,
+              navigable: isNavigable(type)
+            };
+            filledTiles++;
+          }
+          const dx = x1 - x;
+          const dy = y1 - y;
+          if (Math.abs(dx) > Math.abs(dy)) {
+            x += Math.sign(dx);
+          } else {
+            y += Math.sign(dy);
+          }
+        }
+      }
+
+      function rasterizeRing(ring, type) {
+        const polygon = ring.map(([lng, lat]) => {
+          return {
+            x: Math.floor((lng - minLng) / (maxLng - minLng) * (width - 1)),
+            y: Math.floor((maxLat - lat) / (maxLat - minLat) * (height - 1))
+          };
+        });
+
+        // Draw the outline
+        for (let i = 0; i < polygon.length - 1; i++) {
+          const a = polygon[i];
+          const b = polygon[i + 1];
+          drawLine(a.x, a.y, b.x, b.y, type);
+        }
+
+        // Fill inside the polygon
+        const minX = Math.max(0, Math.min(...polygon.map(p => p.x)));
+        const maxX = Math.min(width - 1, Math.max(...polygon.map(p => p.x)));
+        const minY = Math.max(0, Math.min(...polygon.map(p => p.y)));
+        const maxY = Math.min(height - 1, Math.max(...polygon.map(p => p.y)));
+
+        for (let y = minY; y <= maxY; y++) {
+          for (let x = minX; x <= maxX; x++) {
+            const current = mapGrid[y][x]?.type || "empty";
+            if (
+              isInsidePoly(polygon, x, y) &&
+              priorityOrder.indexOf(type) > priorityOrder.indexOf(current)
+            ) {
+              mapGrid[y][x] = {
+                type,
+                navigable: isNavigable(type)
+              };
+              filledTiles++;
+            }
+          }
+        }
+      }
+
+      function isInsidePoly(polygon, x, y) {
+        let inside = false;
+        for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+          const xi = polygon[i].x, yi = polygon[i].y;
+          const xj = polygon[j].x, yj = polygon[j].y;
+
+          const intersect = ((yi > y) !== (yj > y)) &&
+            (x < ((xj - xi) * (y - yi)) / (yj - yi + 0.00001) + xi);
+          if (intersect) inside = !inside;
+        }
+        return inside;
+      }
+
+      function plot(coords, geomType, type) {
+        if (!Array.isArray(coords)) return;
+        try {
+          if (geomType === "Polygon") {
+            coords.forEach(ring => {
+              if (Array.isArray(ring)) rasterizeRing(ring, type);
+            });
+          } else if (geomType === "MultiPolygon") {
+            coords.forEach(polygon => {
+              if (Array.isArray(polygon)) {
+                polygon.forEach(ring => {
+                  if (Array.isArray(ring)) rasterizeRing(ring, type);
+                });
+              }
+            });
+          } else if (geomType === "LineString") {
+            for (let i = 0; i < coords.length - 1; i++) {
+              const [lng1, lat1] = coords[i];
+              const [lng2, lat2] = coords[i + 1];
+
+              if (
+                isNaN(lng1) || isNaN(lat1) || isNaN(lng2) || isNaN(lat2) ||
+                lng1 < minLng || lng1 > maxLng || lat1 < minLat || lat1 > maxLat ||
+                lng2 < minLng || lng2 > maxLng || lat2 < minLat || lat2 > maxLat
+              ) continue;
+
+              const gx1 = Math.floor((lng1 - minLng) / (maxLng - minLng) * (width - 1));
+              const gy1 = Math.floor((maxLat - lat1) / (maxLat - minLat) * (height - 1));
+              const gx2 = Math.floor((lng2 - minLng) / (maxLng - minLng) * (width - 1));
+              const gy2 = Math.floor((maxLat - lat2) / (maxLat - minLat) * (height - 1));
+
+              drawLine(gx1, gy1, gx2, gy2, type);
+            }
+          } else {
+            console.warn("⚠️ Unsupported geometry type:", geomType);
+          }
+        } catch (err) {
+          console.error("❌ Failed to process geometry:", geomType, err);
+        }
+      }
+
+      const priorityOrder = [
+        "natural", "natural_water", "landuse", "landuse_grass", "landuse_forest", "landuse_residential",
+        "surface_dirt", "surface_gravel", "surface_asphalt", "surface_paved", "other",
+        "building", "leisure_park", "man_made", "tourism",
+        "barrier", "entrance",
+        "road", "path", "sidewalk", "stairs", "cycleway", "ramp", "crossing", "kerb"
+      ];
+
+      const typedFeatures = geojson.features.map((feature) => {
+        const props = feature.properties || {};
+        const geom = feature.geometry;
+
+        const type =
+          props.building ? "building" :
+          props.highway === "footway" || props.highway === "pedestrian" ? "sidewalk" :
+          props.highway === "steps" ? "stairs" :
+          props.highway === "path" ? "path" :
+          props.highway === "cycleway" ? "cycleway" :
+          props.highway ? "road" :
+          props.barrier ? "barrier" :
+          props.entrance ? "entrance" :
+          props.kerb ? "kerb" :
+          props.crossing ? "crossing" :
+          props.ramp ? "ramp" :
+          props.surface ? `surface_${props.surface}` :
+          props.landuse ? `landuse_${props.landuse}` :
+          props.leisure ? `leisure_${props.leisure}` :
+          props.tourism ? `tourism_${props.tourism}` :
+          props.amenity ? `amenity_${props.amenity}` :
+          props.man_made ? `man_made_${props.man_made}` :
+          props.natural ? `natural_${props.natural}` :
+          "other";
+
+        return { feature, geom, type };
+      });
+
+      typedFeatures.sort((a, b) => {
+        return priorityOrder.indexOf(a.type) - priorityOrder.indexOf(b.type);
+      });
+
+      window.namedBuildings = [];
+
+      typedFeatures.forEach(({ feature, geom, type }) => {
+        if (!geom || !Array.isArray(geom.coordinates)) return;
+
+        const props = feature.properties || {};
+        const name = props.name;
+        const isBuilding = props.building;
+
+        if (isBuilding && name) {
+          const coords = geom.type === "Polygon"
+            ? geom.coordinates[0]
+            : geom.coordinates[0]?.[0];
+
+          const gridCoords = coords.map(([lng, lat]) => {
+            const gx = Math.floor((lng - minLng) / (maxLng - minLng) * (width - 1));
+            const gy = Math.floor((maxLat - lat) / (maxLat - minLat) * (height - 1));
+            return [gx, gy];
+          });
+
+          window.namedBuildings.push({
+            name,
+            gridCoords
+          });
+        }
+
+        plot(geom.coordinates, geom.type, type);
+      });
+
+      populateBuildingDropdown();
+      window.mapGrid = mapGrid;
+      console.log(`✅ Filled ${filledTiles} tiles of ${width * height}`);
+      console.log("🌀 Calling p5.js setup() to render...");
+
+      alert("✅ GeoJSON loaded with zoom. Rendering...");
+      setup();
+
+      document.getElementById("buildingDropdown").disabled = false;
+      document.getElementById("routingStrategyDropdown").addEventListener("change", function () {
+        routingStrategy = this.value;
+        redraw();
+        console.log("🔀 Routing strategy set to:", routingStrategy);
+      });
+
+      if (window.namedBuildings.length > 0) {
+  const firstBuilding = window.namedBuildings[0];
+  const hubPos = findClosestNavigable(firstBuilding.gridCoords, mapGrid);
+
+  if (!hubPos) {
+    console.warn("❌ No navigable tile found near first building.");
+  } else {
+    mapGrid[hubPos.y][hubPos.x].type = "hub"; // 🔵 visually mark it
+    window.currentHub = hubPos;
+
+    const interval = setInterval(() => {
+      if (window.robot) {
+        window.robot.x = hubPos.x;
+        window.robot.y = hubPos.y;
+        window.robot.direction = "E";
+        document.getElementById("buildingDropdown").value = firstBuilding.name;
+        resetRobot();
+        clearInterval(interval);
+        console.log(`🤖 Robot auto-placed at (${hubPos.x}, ${hubPos.y}) near ${firstBuilding.name}`);
+      }
+    }, 100);
+  }
+
+  // 🟡 Mark all other buildings as pending delivery goals
+  for (const building of window.namedBuildings) {
+  if (building.name === firstBuilding.name) continue;
+
+  const deliveryPos = findClosestReachableTileFromHub(
+    building.gridCoords,
+    hubPos,
+    mapGrid
+  );
+
+  if (!deliveryPos) {
+    console.warn(`⚠️ No reachable delivery point found for ${building.name}`);
+    continue;
+  }
+
+  const tile = mapGrid[deliveryPos.y][deliveryPos.x];
+  tile.type = "goal";
+  tile.id = building.name;
+
+  // ✅ Add to deliveryGoals list for immediate visibility and tracking
+  deliveryGoals.push({
+    x: deliveryPos.x,
+    y: deliveryPos.y,
+    orderId: building.name,
+    delivered: false
+  });
+}
+
+      }
+    }
+
+    function findClosestNavigable(buildingCoords, mapGrid) {
+      const visited = new Set();
+      const queue = [];
+
+      for (const [x, y] of buildingCoords) {
+        queue.push({ x, y, dist: 0 });
+        visited.add(`${x},${y}`);
+      }
+
+      const directions = [
+        [0, 1], [1, 0], [0, -1], [-1, 0],
+        [1, 1], [1, -1], [-1, 1], [-1, -1]
+      ];
+
+      while (queue.length > 0) {
+        const { x, y } = queue.shift();
+
+        if (
+          y >= 0 && y < mapGrid.length &&
+          x >= 0 && x < mapGrid[0].length &&
+          mapGrid[y][x]?.navigable
+        ) {
+          return { x, y };
+        }
+
+        for (const [dx, dy] of directions) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const key = `${nx},${ny}`;
+
+          if (
+            !visited.has(key) &&
+            ny >= 0 && ny < mapGrid.length &&
+            nx >= 0 && nx < mapGrid[0].length
+          ) {
+            visited.add(key);
+            queue.push({ x: nx, y: ny });
+          }
+        }
+      }
+
+      return null;
+    }
+
+    function findPath(start, end, mapGrid) {
+      const queue = [ { x: start.x, y: start.y, path: [] } ];
+      const visited = new Set();
+      visited.add(`${start.x},${start.y}`);
+
+      const directions = [
+        [0, 1], [1, 0], [0, -1], [-1, 0]
+      ];
+
+      while (queue.length > 0) {
+        const current = queue.shift();
+        const { x, y, path } = current;
+
+        if (x === end.x && y === end.y) return path.concat({ x, y });
+
+        for (const [dx, dy] of directions) {
+          const nx = x + dx;
+          const ny = y + dy;
+          const key = `${nx},${ny}`;
+
+          if (
+            nx >= 0 && ny >= 0 &&
+            ny < mapGrid.length && nx < mapGrid[0].length &&
+            mapGrid[ny][nx]?.navigable &&
+            !visited.has(key)
+          ) {
+            visited.add(key);
+            queue.push({ x: nx, y: ny, path: path.concat({ x, y }) });
+          }
+        }
+      }
+
+      return [];
+    }
+    function findClosestReachableTileFromHub(buildingCoords, from, mapGrid, maxRadius = 10) {
+  const directions = [
+    [0, 1], [1, 0], [0, -1], [-1, 0],
+    [1, 1], [-1, 1], [1, -1], [-1, -1]
+  ];
+
+  for (let radius = 1; radius <= maxRadius; radius++) {
+    for (const [bx, by] of buildingCoords) {
+      for (let dx = -radius; dx <= radius; dx++) {
+        for (let dy = -radius; dy <= radius; dy++) {
+          const x = bx + dx;
+          const y = by + dy;
+
+          if (
+            y >= 0 && y < mapGrid.length &&
+            x >= 0 && x < mapGrid[0].length &&
+            mapGrid[y][x]?.navigable &&
+            pathExists(from, { x, y }, mapGrid)
+          ) {
+            return { x, y };
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+    function runSelectedDeliveryQueue() {
+  const deliverySelect = document.getElementById("deliveryTargetSelector");
+  const selectedNames = Array.from(deliverySelect.selectedOptions).map(opt => opt.value);
+
+  if (selectedNames.length === 0) {
+    alert("Select at least one delivery target.");
+    return;
+  }
+
+  // Clear old goals and queue
+  deliveryGoals.length = 0;
+  deliveryQueue.length = 0;
+
+  const hubSelect = document.getElementById("buildingDropdown");
+  const hubName = hubSelect.value;
+  const hubBuilding = window.namedBuildings.find(b => b.name === hubName);
+  const hubPosition = findClosestNavigable(hubBuilding.gridCoords, window.mapGrid);
+
+  const deliveryTargets = [];
+
+for (const name of selectedNames) {
+  const targetBuilding = window.namedBuildings.find(b => b.name === name);
+  if (!targetBuilding) {
+    console.warn(`❌ Building '${name}' not found`);
+    continue;
+  }
+
+  const deliveryPos = findClosestReachableTileFromHub(targetBuilding.gridCoords, hubPosition, window.mapGrid);
+  if (!deliveryPos) {
+    console.warn(`⚠️ No reachable delivery tile found for ${name} from hub`);
+    continue;
+  }
+
+  deliveryTargets.push({ name, x: deliveryPos.x, y: deliveryPos.y });
+  deliveryGoals.push({
+  x: deliveryPos.x,
+  y: deliveryPos.y,
+  orderId: name,
+  delivered: false
+});
+
+// Set the tile so display + logic match
+const tile = window.mapGrid[deliveryPos.y][deliveryPos.x];
+tile.type = "goal";
+tile.id = name;
+}
+
+const fullPlan = generateRobotPlan(hubPosition, deliveryTargets, window.mapGrid, "E");
+window.robotActionQueue = [...fullPlan];
+runRobotActionQueue();
+}
+
+    document.getElementById("buildingDropdown").addEventListener("change", function () {
+  const selectedName = this.value;
+  const building = window.namedBuildings.find(b => b.name === selectedName);
+  if (!building) return alert("Building not found in map data.");
+
+  const hubPosition = findClosestNavigable(building.gridCoords, window.mapGrid);
+  if (!hubPosition) return alert("No navigable tile found near hub building.");
+
+  // 🔁 Reset previous hub tile if it exists
+  if (window.currentHub) {
+    const { x, y } = window.currentHub;
+    if (mapGrid[y][x].type === "hub") {
+      mapGrid[y][x].type = "empty"; // or "sidewalk", "road", etc., if known
+      logMessage(`📍 Starting hub changed to: ${selectedName}`);
+    }
+  }
+
+  // ✅ Mark the new hub tile
+  mapGrid[hubPosition.y][hubPosition.x].type = "hub";
+  window.currentHub = { x: hubPosition.x, y: hubPosition.y };
+
+  // 🤖 Place the robot at hub
+  if (window.robot) {
+    window.robot.x = hubPosition.x;
+    window.robot.y = hubPosition.y;
+    window.robot.direction = "E";
+    window.robot.battery = 100;
+    window.robot.hasDelivered = false;
+    updateBatteryDisplay();
+    console.log(`🚀 Robot placed at (${hubPosition.x}, ${hubPosition.y}) near ${selectedName}`);
+  }
+
+  // 📦 Reset delivery goals
+  // window.deliveryGoals.length = 0;
+
+  // for (const otherBuilding of window.namedBuildings) {
+  //   if (otherBuilding.name === selectedName) continue;
+
+  //   const deliveryPos = findClosestNavigable(otherBuilding.gridCoords, window.mapGrid);
+
+  //   if (!deliveryPos) {
+  //     console.warn(`⚠️ No reachable delivery point found for ${otherBuilding.name}`);
+  //     continue;
+  //   }
+
+  //   setGoal(deliveryPos.x, deliveryPos.y, otherBuilding.name);
+  // }
+
+  redraw(); // 🔄 force re-render of tiles if needed
+});
+  
+document.getElementById("speedSelector").addEventListener("change", function () {
+  const speed = parseInt(this.value, 10);
+  const label = {
+    2000: "🐢 Slow",
+    1000: "🚶 Normal",
+    400: "🏃 Fast",
+    25: "🚀 Ludicrous"
+  }[speed] || `${speed}ms`;
+
+  logMessage(`⚙️ Robot speed set to ${label} (${speed}ms)`);
+});
+  </script>
+</body>
+</html>

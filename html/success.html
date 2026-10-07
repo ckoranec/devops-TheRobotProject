@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Eats - Order Success</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Include QRCode library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>Campus Eats</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html#home">Home</a></li>
+                <li><a href="menu.html#menu">Menu</a></li>
+                <li><a href="about.html#about">About Us</a></li>
+                <li><a href="contact.html#contact">Contact</a></li>
+                <li><a href="order.html#order">Order</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="success" class="card">
+            <h2>Order Successful!</h2>
+            <p>Thank you for your order. Your delicious meal is on its way to your dorm.</p>
+            <p>Scan this QR code when your robot arrives:</p>
+<div id="qrcode"></div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023 Campus Eats. All rights reserved.</p>
+    </footer>
+   
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const studentId = urlParams.get('studentId');
+        const food = urlParams.get('food');
+        const orderId = `ORD-${Date.now()}`;
+        const secret = 'demo-secret'; // Only for prototype use
+      
+        if (!studentId || !food) {
+          document.getElementById("qrcode").innerText = "Invalid order data.";
+        } else {
+          const payload = `${orderId}-${studentId}`;
+          const sig = btoa(payload + secret).substring(0, 12);
+          const fullURL = `https://maxxbyte.io/verify?q=${payload}-${sig}`;
+          
+          // ✅ Render QR
+          new QRCode(document.getElementById("qrcode"), fullURL);
+          console.log("QR Payload URL:", fullURL);
+      
+          // ✅ Log Order
+          const orderData = {
+            orderId: orderId,
+            studentId: studentId,
+            food: food,
+            qrUrl: fullURL
+          };
+      
+          let storedOrders = JSON.parse(localStorage.getItem('orderLog')) || [];
+          storedOrders.push(orderData);
+          localStorage.setItem('orderLog', JSON.stringify(storedOrders));
+          console.log("Order logged:", orderData);
+        }
+      </script>
+
+</body>
+</html>

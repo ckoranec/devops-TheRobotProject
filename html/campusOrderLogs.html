@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAXX Byte - Order Logs</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <h1>MAXX Byte</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html#home">Home</a></li>
+                <li><a href="menu.html#menu">Menu</a></li>
+                <li><a href="about.html#about">About Us</a></li>
+                <li><a href="contact.html#contact">Contact</a></li>
+                <li><a href="order.html#order">Order</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="order-logs" class="card">
+            <h2>Order Logs</h2>
+            <div id="logs-container">
+                <!-- Order logs will be dynamically inserted here -->
+                <button onclick="downloadCSV()" style="margin-top: 1rem;">⬇️ Download CSV</button>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
+    </footer>
+<script>
+    const storedOrders = JSON.parse(localStorage.getItem('orderLog')) || [];
+    const logsContainer = document.getElementById('logs-container');
+
+    if (storedOrders.length === 0) {
+        logsContainer.innerHTML = "<p>No orders logged yet.</p>";
+    } else {
+        storedOrders.forEach(order => {
+            const orderElement = document.createElement('div');
+            orderElement.classList.add('order-log');
+            orderElement.innerHTML = `
+                <p><strong>Order ID:</strong> ${order.orderId}</p>
+                <p><strong>Student ID:</strong> ${order.studentId}</p>
+                <p><strong>Food:</strong> ${order.food}</p>
+                <p><strong>QR URL:</strong> <a href="${order.qrUrl}" target="_blank">${order.qrUrl}</a></p>
+            `;
+            logsContainer.appendChild(orderElement);
+        });
+    }
+    function downloadCSV() {
+  const storedOrders = JSON.parse(localStorage.getItem('orderLog')) || [];
+  if (storedOrders.length === 0) {
+    alert("No orders to download.");
+    return;
+  }
+
+  const header = ["orderId", "studentId", "food", "qrUrl"];
+  const rows = storedOrders.map(order =>
+    `${order.orderId},${order.studentId},${order.food},"${order.qrUrl}"`
+  );
+  const csvContent = [header.join(","), ...rows].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv" });
+  const link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = `campus-eats-orders-${Date.now()}.csv`;
+  link.click();
+}
+</script>
+</body>
+</html>

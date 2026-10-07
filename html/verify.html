@@ -1,0 +1,52 @@
+<!-- verify.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <!-- Include QRCode library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+    <header>
+        <h1>MAXX Byte</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html#home">Home</a></li>
+                <li><a href="menu.html#menu">Menu</a></li>
+                <li><a href="about.html#about">About Us</a></li>
+                <li><a href="contact.html#contact">Contact</a></li>
+                <li><a href="order.html#order">Order</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <section id="verification" class="card">
+            <h2>Verification</h2>
+            <div id="verification-result">Verifying your code...</div>
+        </section>
+    </main>
+    <footer>
+        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
+    </footer>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get("q");
+  const resultElement = document.getElementById("verification-result");
+  if (!token) {
+    resultElement.innerHTML = "Invalid or missing QR payload.";
+  } else {
+    const [orderId, studentId, sig] = token.split("-");
+    const payload = `${orderId}-${studentId}`;
+    const expectedSig = btoa(payload + 'demo-secret').substring(0, 12);
+    if (sig === expectedSig) {
+      resultElement.innerHTML = `✅ Verified delivery for Order ${orderId}, Student ${studentId}`;
+    } else {
+      resultElement.innerHTML = "❌ Invalid QR Signature.";
+    }
+  }
+</script>
+</body>
+</html>

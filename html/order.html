@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAXX Byte - Order</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <h1>MAXX Byte</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html#home">Home</a></li>
+                <li><a href="menu.html#menu">Menu</a></li>
+                <li><a href="about.html#about">About Us</a></li>
+                <li><a href="contact.html#contact">Contact</a></li>
+                <li><a href="order.html#order">Order</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <section id="order" class="card">
+            <h2>Place Your Order</h2>
+            <p>Select your favorite meals and have them delivered to your dorm room.</p>
+
+            <form action="success.html" method="get">
+                <label for="name">Full Name:</label>
+                <input type="text" id="name" name="name" placeholder="Jane Doe" required>
+
+                <label for="studentId">Student ID:</label>
+                <input type="text" id="studentId" name="studentId" placeholder="S1234567" required>
+
+                <label for="food">Select Your Meal:</label>
+                <select id="food" name="food" required>
+                    <option value="">-- Choose a meal --</option>
+                    <option value="Campus Classic Burger">Campus Classic Burger</option>
+                    <option value="Veggie Dorm Delight">Veggie Dorm Delight</option>
+                    <option value="Bacon Beast">Bacon Beast</option>
+                    <option value="Spicy Inferno">Spicy Inferno</option>
+                    <option value="California Roll">California Roll</option>
+                    <option value="Tempura Shrimp Roll">Tempura Shrimp Roll</option>
+                    <option value="Avocado Delight Roll">Avocado Delight Roll</option>
+                    <option value="Dragon Roll">Dragon Roll</option>
+                    <option value="Greek Salad">Greek Salad</option>
+                    <option value="Protein Power Bowl">Protein Power Bowl</option>
+                    <option value="Caesar Salad">Caesar Salad</option>
+                    <option value="Loaded Fries">Loaded Fries</option>
+                    <option value="Mac & Cheese Bites">Mac & Cheese Bites</option>
+                    <option value="Mozzarella Sticks">Mozzarella Sticks</option>
+                    <option value="Fruit Cup">Fruit Cup</option>
+                    <option value="Campus Cold Brew">Campus Cold Brew</option>
+                    <option value="Fresh Lemonade">Fresh Lemonade</option>
+                    <option value="Iced Green Tea">Iced Green Tea</option>
+                    <option value="Bottled Water">Bottled Water</option>
+                    <option value="Chocolate Chip Cookie">Chocolate Chip Cookie</option>
+                    <option value="Fudge Brownie">Fudge Brownie</option>
+                    <option value="Ice Cream Cup">Ice Cream Cup</option>
+                    <option value="Mini Cheesecake">Mini Cheesecake</option>
+                </select>
+
+                <label for="specialInstructions">Special Instructions:</label>
+                <textarea id="specialInstructions" name="specialInstructions" rows="3" placeholder="Allergy info, dorm delivery tips, etc."></textarea>
+
+                <button type="submit">Place Order</button>
+            </form>
+        </section>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
+    </footer>
+</body>
+</html>
