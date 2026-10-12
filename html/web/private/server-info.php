@@ -39,7 +39,7 @@ $public_ip = shell_exec("curl -s http://169.254.169.254/metadata/v1/interfaces/p
             <td>maxx-energy</td>
             <td>Ubuntu server. Provides access to web and logging resources and a gateway to the employee database.</td>
             <td>
-                IP_ADDRESS:22<br>
+                71.178.183.103:22<br>
                 Public_IP: <?= htmlspecialchars($public_ip) ?><br>
             </td>
             <td>ssh</td>
@@ -56,7 +56,7 @@ $public_ip = shell_exec("curl -s http://169.254.169.254/metadata/v1/interfaces/p
             <td>root</td>
             <td>Ubuntu server. Provides root access to web and logging resources and a gateway to the employee database.</td>
             <td>
-                IP_ADDRESS:22<br>
+                71.178.183.103:22<br>
                 Public_IP: <?= htmlspecialchars($public_ip) ?><br>
             </td>
             <td>ssh</td>
