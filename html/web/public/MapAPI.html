@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIS & Routing Dashboard - Campus Eats</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .data-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            margin-bottom: 30px;
+        }
+        .data-card h3 {
+            color: #1f1f2e;
+            margin-bottom: 15px;
+            border-bottom: 2px solid #ff6b6b;
+            padding-bottom: 5px;
+            display: inline-block;
+        }
+        .code-block {
+            background: #f4f4f9;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            margin-top: 10px;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #ff6b6b;
+            color: white;
+        }
+        .btn-secondary {
+            background: #1f1f2e;
+            color: white;
+        }
+        .tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #e0e0eb;
+            font-size: 0.8rem;
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Campus Eats</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html#home">Home</a></li>
+                <li><a href="menu.html#menu">Menu</a></li>
+                <li><a href="tracking.html">Track Delivery</a></li>
+                <li><a href="MapAPI.html">GIS Dashboard</a></li>
+                <li><a href="login.html">Login</a></li>
+                <li><a href="order.html#order">Order</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="dashboard-container">
+            <h2>GIS & Routing Infrastructure</h2>
+            <p>This dashboard provides an overview of the data and scripts powering the robotic delivery routing engine for the George Mason University campus.</p>
+
+            <div class="data-card">
+                <h3>Campus GIS Data</h3>
+                <p><strong>File:</strong> <code>html/data/gmu_map.json</code></p>
+                <p>This file contains the road network and sidewalk nodes extracted from OpenStreetMap. It serves as the base graph for the A* routing algorithm.</p>
+                <div class="tag">JSON Format</div>
+                <div class="tag">OSM Overpass API</div>
+                <div class="code-block">
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "elements": [
+    { "type": "way", "id": 8836894, "tags": { "highway": "service", "name": "Aquia Creek Lane" } },
+    ...
+  ]
+}
+                </div>
+            </div>
+
+            <div class="data-card">
+                <h3>GIS Update Utility</h3>
+                <p><strong>File:</strong> <code>html/mapAPI.py</code></p>
+                <p>A Python-based utility script that connects to the Overpass API to fetch the latest campus geography. It handles the conversion of raw GIS data into the project's standardized JSON format.</p>
+                <div class="tag">Python 3</div>
+                <div class="tag">Requests Lib</div>
+                <div class="code-block">
+import requests
+QUERY = """
+[out:json][timeout:25];
+way["highway"](38.830,-77.310,38.831,-77.309);
+out geom;
+"""
+# Fetches data and saves to html/data/gmu_map.json
+                </div>
+            </div>
+
+            <div class="data-card">
+                <h3>Interactive Tracking</h3>
+                <p>The frontend interface that overlays the GIS data onto a Leaflet-powered map, allowing real-time delivery monitoring and ETA calculation.</p>
+                <div class="btn-group">
+                    <a href="tracking.html" class="btn btn-primary">Launch Interactive Map</a>
+                    <a href="https://github.com/ckoranec/devops-TheRobotProject" class="btn btn-secondary">View Source on GitHub</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 Campus Eats. All rights reserved.</p>
+    </footer>
+</body>
+</html>
