@@ -1,13 +1,13 @@
 import os
 import requests
-import xml.etree.ElementTree as ET
+import json
 
 URL = "https://overpass-api.de/api/interpreter"
 HEADERS = {"User-Agent": "MAXXRobotProject-MapPrototype/0.1"}
-OUTFILE = "gmu_map.xml"
+OUTFILE = "html/data/gmu_map.json"
 
 QUERY = """
-[out:xml][timeout:25];
+[out:json][timeout:25];
 way["highway"](38.830,-77.310,38.831,-77.309);
 out geom;
 """
@@ -26,32 +26,32 @@ def fetch():
         print(f"Could not connect to the server: {e}")
         return None
 
-    # Validate that it's well-formed XML with the expected root
+    # Validate that it's valid JSON
     try:
-        root = ET.fromstring(response.content)
-    except ET.ParseError:
-        print("Response was not valid XML.")
+        data = response.json()
+    except json.JSONDecodeError:
+        print("Response was not valid JSON.")
         return None
 
-    if root.tag != "osm":
-        print("Unexpected XML structure (root is not <osm>).")
+    if "elements" not in data:
+        print("Unexpected JSON structure (no 'elements' key).")
         return None
 
-    remark = root.find("remark")
-    if remark is not None:
-        print(f"Overpass warning: {remark.text}")
+    remark = data.get("remark")
+    if remark:
+        print(f"Overpass warning: {remark}")
 
-    return response.content
+    return data
 
-def save(content):
+def save(data):
     try:
-        with open(OUTFILE, "wb") as f:
-            f.write(content)
-        print(f"Wrote {len(content)} bytes to {os.path.abspath(OUTFILE)}")
+        with open(OUTFILE, "w") as f:
+            json.dump(data, f, indent=2)
+        print(f"Wrote JSON data to {os.path.abspath(OUTFILE)}")
     except OSError as e:
         print(f"Could not write {OUTFILE}: {e}")
 
 if __name__ == "__main__":
-    content = fetch()
-    if content:
-        save(content)
+    data = fetch()
+    if data:
+        save(data)
