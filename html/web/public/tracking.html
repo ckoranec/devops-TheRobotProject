@@ -99,47 +99,166 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
-        // Path extracted from gmu_map.json (Way 8836894 and nearby nodes)
-        // Simulation represents a robot-safe sidewalk route
-        const path = [
-            [38.8331018, -77.3104492],
-            [38.8329991, -77.3103962],
-            [38.8327711, -77.3103391],
-            [38.8323656, -77.3101910],
-            [38.8321928, -77.3100728],
-            [38.8321126, -77.3100180],
-            [38.8315657, -77.3096441],
-            [38.8314363, -77.3095556],
-            [38.8310874, -77.3093238],
-            [38.8310008, -77.3092680],
-            [38.8308282, -77.3091441],
-            [38.8306470, -77.3090313],
-            [38.8305743, -77.3092113],
-            [38.8303926, -77.3090911],
-            [38.8303228, -77.3091480],
-            [38.8300017, -77.3099181]
-        ];
-
-        const map = L.map('map').setView(path[0], 17);
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(map);
-
-        const robotIcon = L.divIcon({
-            html: '<div style="background-color: #ff6b6b; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
-            className: 'robot-marker',
-            iconSize: [20, 20]
-        });
-
-        const startMarker = L.marker(path[0]).addTo(map).bindPopup('Pickup Location');
-        const endMarker = L.marker(path[path.length - 1]).addTo(map).bindPopup('Destination');
-        const robotMarker = L.marker(path[0], {icon: robotIcon}).addTo(map).bindPopup('Robot - Moving to Destination');
-        
-        const routeLine = L.polyline(path, {color: '#1f1f2e', weight: 4, opacity: 0.5, dashArray: '5, 10'}).addTo(map);
-
+        let path = [];
+        let map, robotMarker, startMarker, endMarker, routeLine;
         let currentIndex = 0;
-        const speedMph = 4.5; // Average robot speed
+        const speedMph = 15.0; // Max robot speed as per requirements
+        let interval;
+
+        async function initTracking() {
+            try {
+                // 1. Load GIS data
+                const response = await fetch('../data/gmu_map.json');
+                const data = await response.json();
+                
+                // 2. Build Graph from GIS data
+                const graph = buildGraph(data.elements);
+                
+                // 3. Define start and end nodes (representative nodes from the data)
+                // Aquia Creek Lane (start of way 8836894) to a footway node
+                const startNodeId = 63964177; 
+                const endNodeId = 2444599331;
+                
+                // 4. Run A* Pathfinding
+                path = findPathAStar(startNodeId, endNodeId, graph);
+                
+                if (!path || path.length === 0) {
+                    console.error("No path found via A*");
+                    return;
+                }
+
+                // Initialize Map with Calculated Path
+                setupMap();
+                
+                // Start Simulation
+                interval = setInterval(updateTracking, 10000);
+                updateTracking();
+            } catch (err) {
+                console.error("Failed to initialize tracking:", err);
+            }
+        }
+
+        function buildGraph(elements) {
+            const nodes = new Map();
+            const graph = new Map();
+
+            // First pass: collect all node locations
+            elements.forEach(el => {
+                if (el.type === "way" && el.geometry) {
+                    el.nodes.forEach((nodeId, idx) => {
+                        nodes.set(nodeId, {
+                            lat: el.geometry[idx].lat,
+                            lon: el.geometry[idx].lon
+                        });
+                    });
+                }
+            });
+
+            // Second pass: build adjacency list with weights
+            elements.forEach(el => {
+                if (el.type === "way") {
+                    const maxSpeed = parseInt(el.tags?.maxspeed) || 15;
+                    for (let i = 0; i < el.nodes.length - 1; i++) {
+                        const u = el.nodes[i];
+                        const v = el.nodes[i+1];
+                        const locU = nodes.get(u);
+                        const locV = nodes.get(v);
+                        
+                        if (locU && locV) {
+                            const dist = calculateDistance(locU.lat, locU.lon, locV.lat, locV.lon);
+                            // Weight = travel time = distance / speed
+                            const weight = dist / maxSpeed;
+                            
+                            if (!graph.has(u)) graph.set(u, []);
+                            if (!graph.has(v)) graph.set(v, []);
+                            
+                            graph.get(u).push({ to: v, weight, dist, lat: locV.lat, lon: locV.lon });
+                            graph.get(v).push({ to: u, weight, dist, lat: locU.lat, lon: locU.lon });
+                        }
+                    }
+                }
+            });
+
+            return { graph, nodes };
+        }
+
+        function findPathAStar(startId, endId, { graph, nodes }) {
+            const endLoc = nodes.get(endId);
+            const openSet = new Set([startId]);
+            const cameFrom = new Map();
+            
+            const gScore = new Map(); // Cost from start to current node
+            gScore.set(startId, 0);
+            
+            const fScore = new Map(); // Estimated total cost (gScore + heuristic)
+            fScore.set(startId, heuristic(startId, endId, nodes));
+
+            while (openSet.size > 0) {
+                // Get node in openSet with lowest fScore
+                let current = null;
+                let lowestF = Infinity;
+                for (let nodeId of openSet) {
+                    let score = fScore.get(nodeId) ?? Infinity;
+                    if (score < lowestF) {
+                        lowestF = score;
+                        current = nodeId;
+                    }
+                }
+
+                if (current === endId) {
+                    return reconstructPath(cameFrom, current, nodes);
+                }
+
+                openSet.delete(current);
+                const neighbors = graph.get(current) || [];
+
+                for (let neighbor of neighbors) {
+                    const tentativeGScore = gScore.get(current) + neighbor.weight;
+                    
+                    if (tentativeGScore < (gScore.get(neighbor.to) ?? Infinity)) {
+                        cameFrom.set(neighbor.to, current);
+                        gScore.set(neighbor.to, tentativeGScore);
+                        fScore.set(neighbor.to, tentativeGScore + heuristic(neighbor.to, endId, nodes));
+                        openSet.add(neighbor.to);
+                    }
+                }
+            }
+            return [];
+        }
+
+        function heuristic(nodeId, endId, nodes) {
+            const a = nodes.get(nodeId);
+            const b = nodes.get(endId);
+            // Straight-line time estimate at 15mph
+            return calculateDistance(a.lat, a.lon, b.lat, b.lon) / 15;
+        }
+
+        function reconstructPath(cameFrom, current, nodes) {
+            const totalPath = [ [nodes.get(current).lat, nodes.get(current).lon] ];
+            while (cameFrom.has(current)) {
+                current = cameFrom.get(current);
+                totalPath.unshift([nodes.get(current).lat, nodes.get(current).lon]);
+            }
+            return totalPath;
+        }
+
+        function setupMap() {
+            map = L.map('map').setView(path[0], 17);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+
+            const robotIcon = L.divIcon({
+                html: '<div style="background-color: #ff6b6b; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
+                className: 'robot-marker',
+                iconSize: [20, 20]
+            });
+
+            startMarker = L.marker(path[0]).addTo(map).bindPopup('Pickup Location');
+            endMarker = L.marker(path[path.length - 1]).addTo(map).bindPopup('Destination');
+            robotMarker = L.marker(path[0], {icon: robotIcon}).addTo(map).bindPopup('Robot - Moving to Destination');
+            routeLine = L.polyline(path, {color: '#1f1f2e', weight: 4, opacity: 0.5, dashArray: '5, 10'}).addTo(map);
+        }
 
         function calculateDistance(lat1, lon1, lat2, lon2) {
             const R = 3958.8; // Radius of Earth in miles
@@ -162,18 +281,14 @@
                 currentIndex++;
                 const newPos = path[currentIndex];
                 robotMarker.setLatLng(newPos);
-                
-                // Keep robot in view
                 map.panTo(newPos);
 
-                // Calculate remaining distance
                 let remainingDist = 0;
                 for (let i = currentIndex; i < path.length - 1; i++) {
                     remainingDist += calculateDistance(path[i][0], path[i][1], path[i+1][0], path[i+1][1]);
                 }
 
                 const etaMinutes = (remainingDist / speedMph) * 60;
-                
                 document.getElementById('distance').innerText = remainingDist.toFixed(2) + ' miles';
                 document.getElementById('eta').innerText = etaMinutes.toFixed(1) + ' mins';
                 document.getElementById('speed').innerText = speedMph + ' mph';
@@ -186,8 +301,8 @@
             }
         }
 
-        const interval = setInterval(updateTracking, 10000); // Update every 10 seconds as per requirement
-        updateTracking(); // Initial call
+        // Initialize on load
+        initTracking();
     </script>
 </body>
 </html>

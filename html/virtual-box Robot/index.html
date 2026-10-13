@@ -539,38 +539,74 @@ const ZOOM_BOX = {
     }
 
     function findPath(start, end, mapGrid) {
-      const queue = [ { x: start.x, y: start.y, path: [] } ];
-      const visited = new Set();
-      visited.add(`${start.x},${start.y}`);
+      const openSet = new Set([`${start.x},${start.y}`]);
+      const cameFrom = new Map();
+      
+      const gScore = new Map();
+      gScore.set(`${start.x},${start.y}`, 0);
+      
+      const fScore = new Map();
+      fScore.set(`${start.x},${start.y}`, manhattanHeuristic(start, end));
 
       const directions = [
         [0, 1], [1, 0], [0, -1], [-1, 0]
       ];
 
-      while (queue.length > 0) {
-        const current = queue.shift();
-        const { x, y, path } = current;
+      while (openSet.size > 0) {
+        let current = null;
+        let lowestF = Infinity;
+        for (let key of openSet) {
+          let score = fScore.get(key) ?? Infinity;
+          if (score < lowestF) {
+            lowestF = score;
+            current = key;
+          }
+        }
 
-        if (x === end.x && y === end.y) return path.concat({ x, y });
+        const [cx, cy] = current.split(',').map(Number);
+        if (cx === end.x && cy === end.y) {
+          return reconstructGridPath(cameFrom, current);
+        }
+
+        openSet.delete(current);
 
         for (const [dx, dy] of directions) {
-          const nx = x + dx;
-          const ny = y + dy;
-          const key = `${nx},${ny}`;
+          const nx = cx + dx;
+          const ny = cy + dy;
+          const neighbor = `${nx},${ny}`;
 
           if (
             nx >= 0 && ny >= 0 &&
             ny < mapGrid.length && nx < mapGrid[0].length &&
-            mapGrid[ny][nx]?.navigable &&
-            !visited.has(key)
+            mapGrid[ny][nx]?.navigable
           ) {
-            visited.add(key);
-            queue.push({ x: nx, y: ny, path: path.concat({ x, y }) });
+            const tentativeGScore = gScore.get(current) + 1;
+            
+            if (tentativeGScore < (gScore.get(neighbor) ?? Infinity)) {
+              cameFrom.set(neighbor, current);
+              gScore.set(neighbor, tentativeGScore);
+              fScore.set(neighbor, tentativeGScore + manhattanHeuristic({x: nx, y: ny}, end));
+              openSet.add(neighbor);
+            }
           }
         }
       }
 
       return [];
+    }
+
+    function manhattanHeuristic(a, b) {
+      return Math.abs(a.x - b.x) + Math.abs(a.y - b.y);
+    }
+
+    function reconstructGridPath(cameFrom, current) {
+      const totalPath = [];
+      while (current) {
+        const [x, y] = current.split(',').map(Number);
+        totalPath.unshift({ x, y });
+        current = cameFrom.get(current);
+      }
+      return totalPath;
     }
     function findClosestReachableTileFromHub(buildingCoords, from, mapGrid, maxRadius = 10) {
   const directions = [
