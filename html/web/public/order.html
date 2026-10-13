@@ -5,7 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MAXX Byte - Order</title>
     <link rel="stylesheet" href="css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        .order-container {
+            max-width: 800px;
+            margin: 20px auto;
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+        }
+        .order-form-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+        }
+        .order-summary-card {
+            background: #1f1f2e;
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            height: fit-content;
+        }
+        .order-summary-card h3 { color: #ff6b6b; margin-bottom: 15px; }
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        .total { font-size: 1.2rem; font-weight: bold; margin-top: 15px; border-bottom: none; }
+        .checkout-btn {
+            background: #ff6b6b;
+            width: 100%;
+            margin-top: 20px;
+        }
+        @media (max-width: 768px) {
+            .order-container { grid-template-columns: 1fr; }
+        }
+    </style>
 </head>
 <body>
     <header>
@@ -25,52 +63,74 @@
     </header>
 
     <main>
-        <section id="order" class="card">
-            <h2>Place Your Order</h2>
-            <p>Select your favorite meals and have them delivered to your dorm room.</p>
+        <div class="order-container">
+            <div class="order-form-card">
+                <h2>Place Your Order</h2>
+                <p>Select your favorite meals and have them delivered to your dorm room.</p>
+    
+                <form id="orderForm" action="success.html" method="get">
+                    <label for="name">Full Name:</label>
+                    <input type="text" id="name" name="name" placeholder="Jane Doe" required>
+    
+                    <label for="studentId">Student ID:</label>
+                    <input type="text" id="studentId" name="studentId" placeholder="S1234567" required>
+    
+                    <label for="food">Select Your Meal:</label>
+                    <select id="food" name="food" onchange="updateSummary()" required>
+                        <option value="" data-price="0">-- Choose a meal --</option>
+                        <option value="Campus Classic Burger" data-price="6.99">Campus Classic Burger - $6.99</option>
+                        <option value="Veggie Dorm Delight" data-price="5.99">Veggie Dorm Delight - $5.99</option>
+                        <option value="Bacon Beast" data-price="8.49">Bacon Beast - $8.49</option>
+                        <option value="Sushi Combo" data-price="9.99">Sushi Combo - $9.99</option>
+                        <option value="Protein Power Bowl" data-price="7.99">Protein Power Bowl - $7.99</option>
+                    </select>
+    
+                    <label for="specialInstructions">Special Instructions:</label>
+                    <textarea id="specialInstructions" name="specialInstructions" rows="3" placeholder="Allergy info, dorm delivery tips, etc."></textarea>
+    
+                    <button type="submit" class="checkout-btn">Complete Checkout</button>
+                </form>
+            </div>
 
-            <form action="success.html" method="get">
-                <label for="name">Full Name:</label>
-                <input type="text" id="name" name="name" placeholder="Jane Doe" required>
-
-                <label for="studentId">Student ID:</label>
-                <input type="text" id="studentId" name="studentId" placeholder="S1234567" required>
-
-                <label for="food">Select Your Meal:</label>
-                <select id="food" name="food" required>
-                    <option value="">-- Choose a meal --</option>
-                    <option value="Campus Classic Burger">Campus Classic Burger</option>
-                    <option value="Veggie Dorm Delight">Veggie Dorm Delight</option>
-                    <option value="Bacon Beast">Bacon Beast</option>
-                    <option value="Spicy Inferno">Spicy Inferno</option>
-                    <option value="California Roll">California Roll</option>
-                    <option value="Tempura Shrimp Roll">Tempura Shrimp Roll</option>
-                    <option value="Avocado Delight Roll">Avocado Delight Roll</option>
-                    <option value="Dragon Roll">Dragon Roll</option>
-                    <option value="Greek Salad">Greek Salad</option>
-                    <option value="Protein Power Bowl">Protein Power Bowl</option>
-                    <option value="Caesar Salad">Caesar Salad</option>
-                    <option value="Loaded Fries">Loaded Fries</option>
-                    <option value="Mac & Cheese Bites">Mac & Cheese Bites</option>
-                    <option value="Mozzarella Sticks">Mozzarella Sticks</option>
-                    <option value="Fruit Cup">Fruit Cup</option>
-                    <option value="Campus Cold Brew">Campus Cold Brew</option>
-                    <option value="Fresh Lemonade">Fresh Lemonade</option>
-                    <option value="Iced Green Tea">Iced Green Tea</option>
-                    <option value="Bottled Water">Bottled Water</option>
-                    <option value="Chocolate Chip Cookie">Chocolate Chip Cookie</option>
-                    <option value="Fudge Brownie">Fudge Brownie</option>
-                    <option value="Ice Cream Cup">Ice Cream Cup</option>
-                    <option value="Mini Cheesecake">Mini Cheesecake</option>
-                </select>
-
-                <label for="specialInstructions">Special Instructions:</label>
-                <textarea id="specialInstructions" name="specialInstructions" rows="3" placeholder="Allergy info, dorm delivery tips, etc."></textarea>
-
-                <button type="submit">Place Order</button>
-            </form>
-        </section>
+            <div class="order-summary-card">
+                <h3>Order Summary</h3>
+                <div id="summaryItems">
+                    <div class="summary-item">
+                        <span>Items</span>
+                        <span id="summaryMeal">-</span>
+                    </div>
+                </div>
+                <div class="summary-item">
+                    <span>Delivery Fee</span>
+                    <span>$1.99</span>
+                </div>
+                <div class="summary-item total">
+                    <span>Total</span>
+                    <span id="summaryTotal">$0.00</span>
+                </div>
+                <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 20px;">
+                    Estimated delivery time: 15-20 mins
+                </p>
+            </div>
+        </div>
     </main>
+
+    <script>
+        function updateSummary() {
+            const foodSelect = document.getElementById('food');
+            const selectedOption = foodSelect.options[foodSelect.selectedIndex];
+            const price = parseFloat(selectedOption.getAttribute('data-price'));
+            const mealName = selectedOption.value;
+
+            if (price > 0) {
+                document.getElementById('summaryMeal').innerText = mealName + ' ($' + price.toFixed(2) + ')';
+                document.getElementById('summaryTotal').innerText = '$' + (price + 1.99).toFixed(2);
+            } else {
+                document.getElementById('summaryMeal').innerText = '-';
+                document.getElementById('summaryTotal').innerText = '$0.00';
+            }
+        }
+    </script>
 
     <footer>
         <p>&copy; 2023 MAXX Byte. All rights reserved.</p>

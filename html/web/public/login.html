@@ -16,7 +16,15 @@
         }
         .auth-header { text-align: center; margin-bottom: 20px; }
         .auth-footer { text-align: center; margin-top: 20px; font-size: 0.9rem; }
-        .two-factor { display: none; }
+        .two-factor, .recovery-flow, .access-denied { display: none; }
+        .role-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: #eee;
+            font-size: 0.75rem;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -43,7 +51,7 @@
                     <h2>Welcome Back</h2>
                     <p>Login to track your delivery</p>
                 </div>
-                <form onsubmit="event.preventDefault(); show2FA();">
+                <form onsubmit="event.preventDefault(); handleLogin();">
                     <label for="email">Email:</label>
                     <input type="email" id="email" required placeholder="mason@gmu.edu">
                     
@@ -53,9 +61,36 @@
                     <button type="submit">Continue</button>
                     
                     <div class="auth-footer">
-                        <a href="#" onclick="alert('Recovery link sent to your email.');">Forgot Password?</a>
+                        <a href="#" onclick="showRecovery()">Forgot Password?</a>
                     </div>
                 </form>
+            </div>
+
+            <div id="recovery-flow" class="recovery-flow">
+                <div class="auth-header">
+                    <h2>Account Recovery</h2>
+                    <p>Enter your email to receive a recovery link</p>
+                </div>
+                <form onsubmit="event.preventDefault(); alert('Recovery link sent!'); showLogin();">
+                    <label for="recovery-email">Email:</label>
+                    <input type="email" id="recovery-email" required placeholder="mason@gmu.edu">
+                    <button type="submit">Send Link</button>
+                    <div class="auth-footer">
+                        <a href="#" onclick="showLogin()">Back to Login</a>
+                    </div>
+                </form>
+            </div>
+
+            <div id="access-denied" class="access-denied">
+                <div class="auth-header">
+                    <h2 style="color: #ff6b6b;">Access Denied</h2>
+                    <p>Your account does not have permission to view the GIS Dashboard.</p>
+                </div>
+                <div class="auth-footer">
+                    <button onclick="showLogin()">Try Different Account</button>
+                    <br><br>
+                    <a href="index.html">Return Home</a>
+                </div>
             </div>
 
             <div id="2fa-flow" class="two-factor">
@@ -76,12 +111,37 @@
 
     <script>
         function show2FA() {
-            document.getElementById('login-flow').style.display = 'none';
+            hideAll();
             document.getElementById('2fa-flow').style.display = 'block';
         }
         function showLogin() {
+            hideAll();
             document.getElementById('login-flow').style.display = 'block';
+        }
+        function showRecovery() {
+            hideAll();
+            document.getElementById('recovery-flow').style.display = 'block';
+        }
+        function showAccessDenied() {
+            hideAll();
+            document.getElementById('access-denied').style.display = 'block';
+        }
+        function hideAll() {
+            document.getElementById('login-flow').style.display = 'none';
             document.getElementById('2fa-flow').style.display = 'none';
+            document.getElementById('recovery-flow').style.display = 'none';
+            document.getElementById('access-denied').style.display = 'none';
+        }
+        function handleLogin() {
+            const email = document.getElementById('email').value;
+            // Simple logic to demonstrate roles and access denial
+            if (email.includes('admin')) {
+                show2FA();
+            } else if (email.includes('guest')) {
+                showAccessDenied();
+            } else {
+                show2FA();
+            }
         }
     </script>
 </body>

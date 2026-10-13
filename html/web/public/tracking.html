@@ -83,7 +83,12 @@
                 <p><strong>Order ID:</strong> #CE-8836894</p>
                 <p><strong>Pickup:</strong> Aquia Creek Lane Kitchen</p>
                 <p><strong>Destination:</strong> Mason Pond Building Entrance</p>
-                <p><strong>Restricted Areas:</strong> Avoided construction zones.</p>
+                <div id="signal-warning" style="display: none; background: #fff3cd; color: #856404; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #ffeeba;">
+                    <strong>⚠ Signal Loss:</strong> Reconnecting to robot GPS...
+                </div>
+                <div id="route-blocked" style="display: none; background: #f8d7da; color: #721c24; padding: 10px; border-radius: 6px; margin-top: 10px; border: 1px solid #f5c6cb;">
+                    <strong>⛔ Route Blocked:</strong> Robot is recalculating path due to temporary construction.
+                </div>
             </div>
         </section>
     </main>
@@ -94,7 +99,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
-        // Path extracted from gmu_map.xml (Way 8836894 and nearby nodes)
+        // Path extracted from gmu_map.json (Way 8836894 and nearby nodes)
+        // Simulation represents a robot-safe sidewalk route
         const path = [
             [38.8331018, -77.3104492],
             [38.8329991, -77.3103962],
@@ -147,6 +153,11 @@
         }
 
         function updateTracking() {
+            // Randomly simulate signal loss or blocked route for demonstration
+            const rand = Math.random();
+            document.getElementById('signal-warning').style.display = rand < 0.1 ? 'block' : 'none';
+            document.getElementById('route-blocked').style.display = (rand > 0.1 && rand < 0.2) ? 'block' : 'none';
+
             if (currentIndex < path.length - 1) {
                 currentIndex++;
                 const newPos = path[currentIndex];
