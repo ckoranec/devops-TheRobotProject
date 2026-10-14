@@ -13,7 +13,6 @@ ALLOWED = {"footway", "path", "steps", "pedestrian"} #Walk tags that match red d
 METERS_PER_DEG_LAT = 111_320.0
 
 def flat_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    """Flat distance in meters, using a local scale. Not haversine."""
     lat_scale = METERS_PER_DEG_LAT
     lon_scale = METERS_PER_DEG_LAT * math.cos(math.radians((lat1 + lat2) / 2))
     dx = (lon2 - lon1) * lon_scale
