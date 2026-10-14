@@ -5,9 +5,7 @@ Usage:
         print(changes)
 """
 def simplify(overpass_data):
-    """Keep only what matters for each path: its points and its tags.
 
-    """
     ways = {}
     for element in overpass_data["elements"]:
         if element["type"] == "way":
@@ -19,7 +17,6 @@ def simplify(overpass_data):
 
 
 def compare_maps(fresh_data, saved_data):
-    """ list which paths were added, removed or changed in the live map."""
     new = simplify(fresh_data)
     old = simplify(saved_data)
     return {
@@ -31,7 +28,7 @@ def compare_maps(fresh_data, saved_data):
 
 
 def is_in_sync(changes):
-    """True when nothing was added, removed or changed."""
+
     return not (changes["added"] or changes["removed"] or changes["changed"])
 
 
@@ -41,7 +38,7 @@ def is_in_sync(changes):
 """
 uncomment this to test with sample data
 def way(way_id, points, highway="footway"):
-    """Build one path the way Overpass returns it with 'out geom'."""
+
     return {
         "type": "way",
         "id": way_id,
@@ -51,7 +48,6 @@ def way(way_id, points, highway="footway"):
 
 
 def overpass(*ways, timestamp="2026-10-13T09:00:00Z"):
-    """Build a full Overpass response around some paths."""
     return {"osm3s": {"timestamp_osm_base": timestamp}, "elements": list(ways)}
 
 
