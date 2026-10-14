@@ -193,12 +193,8 @@ def main(): #change name to dijkstra()
     meters, nodes, line = result
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(line_to_geojson(line, meters, start, goal), fh)
-    print(f"routing nodes: {len(graph.nodes)}")
+    print(f"routing nodes: {len(graph.nodes)}") #Change to something else, maybe raise instead of print
     print(f"snapped start {start}  -> goal {goal} ")
     print(f"path nodes: {len(nodes)}")
     print(f"length: {meters:.1f} m")
     print(f"wrote {args.out}")
-
-
-if __name__ == "__main__":
-    main()
