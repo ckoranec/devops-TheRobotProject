@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Preparation - MAXX Byte</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .prep-container { max-width: 600px; margin: 50px auto; text-align: center; }
+        .prep-visual {
+            font-size: 4rem;
+            margin: 20px 0;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #eee;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #ff6b6b;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        .status-text { font-weight: bold; color: #1f1f2e; }
+    </style>
+</head>
+<body>
+    <div class="page-overlay">
+    <header><h1>MAXX Byte</h1></header>
+    <main>
+        <div class="prep-container card">
+            <h2>Chef is on it!</h2>
+            <div class="prep-visual" id="prep-icon">👨‍🍳</div>
+            <div class="status-text" id="status-label">Receiving Order...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress"></div>
+            </div>
+            <p>Your meal is being freshly prepared at the Campus Kitchen.</p>
+        </div>
+    </main>
+    <script>
+        const stages = [
+            { pct: 10, text: "Order Confirmed", icon: "📋" },
+            { pct: 30, text: "Preparing Ingredients", icon: "🔪" },
+            { pct: 60, text: "Cooking Your Meal", icon: "🍳" },
+            { pct: 85, text: "Quality Check", icon: "✨" },
+            { pct: 100, text: "Handing over to Robot", icon: "🤖" }
+        ];
+
+        let currentStage = 0;
+        const progress = document.getElementById('progress');
+        const statusLabel = document.getElementById('status-label');
+        const prepIcon = document.getElementById('prep-icon');
+
+        function updateStage() {
+            if (currentStage < stages.length) {
+                const s = stages[currentStage];
+                progress.style.width = s.pct + '%';
+                statusLabel.innerText = s.text;
+                prepIcon.innerText = s.icon;
+                currentStage++;
+                
+                if (currentStage === stages.length) {
+                    setTimeout(() => {
+                        window.location.href = 'tracking.html?status=initiated';
+                    }, 2000);
+                } else {
+                    setTimeout(updateStage, 2500);
+                }
+            }
+        }
+
+        window.onload = updateStage;
+    </script>
+    <footer style="background: #1f1f2e; color: white; padding: 2rem; text-align: center; margin-top: auto;">
+        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
+    </footer>
+    </div>
+</body>
+</html>

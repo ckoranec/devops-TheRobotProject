@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Payment - MAXX Byte</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <style>
+        .payment-container { max-width: 500px; margin: 50px auto; }
+        .stripe-simulation {
+            border: 1px solid #e6ebf1;
+            padding: 20px;
+            border-radius: 8px;
+            background: #f8fbfd;
+        }
+        .form-group { margin-bottom: 15px; }
+        .payment-method { display: flex; gap: 10px; margin-bottom: 20px; }
+        .payment-method img { height: 30px; }
+        .secure-badge { display: flex; align-items: center; gap: 5px; color: #6772e5; font-size: 0.9rem; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="page-overlay">
+    <header><h1>MAXX Byte</h1></header>
+    <main>
+        <div class="payment-container card">
+            <h3>Complete Payment</h3>
+            <p>Total Amount: <strong id="total-amount">$0.00</strong></p>
+            
+            <div class="stripe-simulation">
+                <div class="payment-method">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/b/ba/Stripe_Logo%2C_revised_2016.svg" alt="Stripe">
+                </div>
+                
+                <form onsubmit="processPayment(event)">
+                    <div class="form-group">
+                        <label>Cardholder Name</label>
+                        <input type="text" id="card-name" placeholder="Dave Noyes" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Card Number</label>
+                        <input type="text" placeholder="**** **** **** 4242" required>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div class="form-group">
+                            <label>Expiry Date</label>
+                            <input type="text" placeholder="MM / YY" required>
+                        </div>
+                        <div class="form-group">
+                            <label>CVC</label>
+                            <input type="text" placeholder="123" required>
+                        </div>
+                    </div>
+                    <button type="submit" style="background: #6772e5; width: 100%;">Pay Now</button>
+                    <div class="secure-badge">
+                        <span>🔒 Secure Checkout Powered by Stripe</span>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </main>
+    <script>
+        window.onload = () => {
+            const params = new URLSearchParams(window.location.search);
+            const price = params.get('total') || '10.48';
+            document.getElementById('total-amount').innerText = '$' + price;
+            
+            const stored = localStorage.getItem('userProfile');
+            if (stored) {
+                const profile = JSON.parse(stored);
+                document.getElementById('card-name').value = profile.fullName || 'Dave Noyes';
+            }
+        };
+
+        function processPayment(event) {
+            event.preventDefault();
+            // Simulate Stripe processing
+            const btn = event.target.querySelector('button');
+            btn.innerText = 'Processing...';
+            btn.disabled = true;
+            
+            setTimeout(() => {
+                window.location.href = 'preparation.html';
+            }, 2000);
+        }
+    </script>
+    <footer style="background: #1f1f2e; color: white; padding: 2rem; text-align: center; margin-top: auto;">
+        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
+    </footer>
+    </div>
+</body>
+</html>

@@ -183,7 +183,6 @@
         }
 
         function findPathAStar(startId, endId, { graph, nodes }) {
-            const endLoc = nodes.get(endId);
             const openSet = new Set([startId]);
             const cameFrom = new Map();
             
@@ -248,10 +247,10 @@
                 attribution: '&copy; OpenStreetMap contributors'
             }).addTo(map);
 
-            const robotIcon = L.divIcon({
-                html: '<div style="background-color: #ff6b6b; width: 20px; height: 20px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 5px rgba(0,0,0,0.5);"></div>',
-                className: 'robot-marker',
-                iconSize: [20, 20]
+           const robotIcon = L.icon({
+                iconUrl: '../../virtual-box Robot/Truck_with_cargo.png',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
             });
 
             startMarker = L.marker(path[0]).addTo(map).bindPopup('Pickup Location');

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Internal Operations - MAXX Byte</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        #admin-map { height: 500px; border-radius: 12px; }
+        .stats-panel { background: #1f1f2e; color: white; padding: 20px; border-radius: 12px; }
+        .stat-card { background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+        .stat-val { font-size: 1.5rem; font-weight: bold; color: #ff6b6b; }
+        .control-panel { margin-top: 20px; }
+        .control-btn { 
+            width: 100%; padding: 10px; margin-bottom: 5px; 
+            border: none; border-radius: 6px; cursor: pointer; font-weight: bold;
+        }
+        .btn-emergency { background: #ff6b6b; color: white; }
+        .btn-update { background: #4dabf7; color: white; }
+    </style>
+</head>
+<body>
+    <div class="page-overlay">
+    <header>
+        <h1>MAXX Byte Operations Hub</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Customer View</a></li>
+                <li><a href="MapAPI.html">GIS Data</a></li>
+            </ul>
+        </nav>
+    </header>
+    <main>
+        <div class="admin-grid">
+            <div class="card" style="padding: 10px;">
+                <div id="admin-map"></div>
+            </div>
+            <div class="stats-panel">
+                <h3>Fleet Status</h3>
+                <div class="stat-card">
+                    <div>Active Robots</div>
+                    <div class="stat-val">04</div>
+                </div>
+                <div class="stat-card">
+                    <div>Pending Orders</div>
+                    <div class="stat-val">12</div>
+                </div>
+                <div class="stat-card">
+                    <div>System Health</div>
+                    <div class="stat-val" style="color: #51cf66;">Optimal</div>
+                </div>
+
+                <div class="control-panel">
+                    <h3>Manual Override</h3>
+                    <button class="control-btn btn-update">Update Routing Table</button>
+                    <button class="control-btn btn-emergency">EMERGENCY STOP ALL</button>
+                    <p style="font-size: 0.8rem; opacity: 0.6; margin-top: 10px;">
+                        Logged in as: Admin_Noyes
+                    </p>
+                </div>
+            </div>
+        </div>
+    </main>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('admin-map').setView([38.8315, -77.3097], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Simulated Fleet Positions
+        const robots = [
+            { id: 'GMU-Bot-01', pos: [38.8315, -77.3097], status: 'Delivering' },
+            { id: 'GMU-Bot-02', pos: [38.8330, -77.3110], status: 'Returning' },
+            { id: 'GMU-Bot-03', pos: [38.8290, -77.3080], status: 'Charging' }
+        ];
+
+        robots.forEach(bot => {
+            L.marker(bot.pos).addTo(map)
+                .bindPopup(`<b>${bot.id}</b><br>Status: ${bot.status}`);
+        });
+    </script>
+    <footer>
+        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
+    </footer>
+    </div>
+</body>
+</html>

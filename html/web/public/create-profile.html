@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Profile - MAXX Byte</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        .section-title {
+            margin: 1.5rem 0 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #f0f0f0;
+            color: #1f1f2e;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-overlay">
+    <header>
+        <h1>MAXX Byte</h1>
+        <nav>
+            <ul>
+                <li><a href="index.html">Home</a></li>
+                <li><a href="menu.html">Our Menu</a></li>
+                <li><a href="tracking.html">Track Delivery</a></li>
+                <li><a href="order.html">My Cart</a></li>
+                <li><a href="create-profile.html">My Profile</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <main>
+        <div class="profile-container">
+            <div class="card">
+                <h3>Create Your Account</h3>
+                <p>Join the future of campus dining. All fields are required for the Sprint Demo.</p>
+                
+                <form id="profileForm" onsubmit="saveProfile(event)">
+                    <div class="section-title">Account Credentials</div>
+                    <div class="form-row">
+                        <div>
+                            <label>Email Address</label>
+                            <input type="email" id="email" placeholder="noyes.dave@gmail.com" required>
+                        </div>
+                        <div>
+                            <label>Password</label>
+                            <input type="password" id="password" placeholder="Sprintdemo" required>
+                        </div>
+                    </div>
+
+                    <div class="section-title">Delivery Details</div>
+                    <div class="form-row">
+                        <div>
+                            <label>Full Name</label>
+                            <input type="text" id="fullName" placeholder="Dave Noyes" required>
+                        </div>
+                        <div>
+                            <label>Phone Number</label>
+                            <input type="tel" id="phone" placeholder="571-918-1864" required>
+                        </div>
+                    </div>
+                    <div>
+                        <label>Delivery Address (Campus Building/Dorm)</label>
+                        <input type="text" id="address" placeholder="Mason Pond Building, Room 202" required>
+                    </div>
+
+                    <div class="section-title">Order History & Preferences</div>
+                    <p style="font-size: 0.9rem; color: #666;">(Pre-populated for Demo Purpose)</p>
+                    <textarea rows="3" readonly>Recent Orders:
+- Campus Classic Burger (Delivered)
+- Sushi Combo (Delivered)</textarea>
+
+                    <button type="submit" style="background: #ff6b6b; margin-top: 1rem;">Create Profile & Continue to Order</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
+        <div style="margin-top: 10px; font-size: 0.8rem;">
+            <a href="internal-dashboard.html" style="color: #888;">Ops Hub</a> | 
+            <a href="MapAPI.html" style="color: #888;">GIS Dashboard</a>
+        </div>
+    </footer>
+    </div>
+
+    <script>
+        function saveProfile(event) {
+            event.preventDefault();
+            // In a real app, we'd save to a DB. For demo, we'll store in localStorage
+            const profile = {
+                email: document.getElementById('email').value,
+                phone: document.getElementById('phone').value,
+                address: document.getElementById('address').value
+            };
+            localStorage.setItem('userProfile', JSON.stringify(profile));
+            window.location.href = 'login.html';
+        }
+
+        window.onload = () => {
+            const stored = localStorage.getItem('userProfile');
+            if (stored) {
+                const profile = JSON.parse(stored);
+                document.getElementById('email').value = profile.email || 'noyes.dave@gmail.com';
+                document.getElementById('phone').value = profile.phone || '571-918-1864';
+                document.getElementById('fullName').value = profile.fullName || 'Dave Noyes';
+                document.getElementById('address').value = profile.address || 'Mason Pond Building';
+            } else {
+                document.getElementById('email').value = 'noyes.dave@gmail.com';
+                document.getElementById('password').value = 'Sprintdemo';
+                document.getElementById('phone').value = '571-918-1864';
+                document.getElementById('fullName').value = 'Dave Noyes';
+                document.getElementById('address').value = 'Mason Pond Building';
+            }
+        };
+    </script>
+</body>
+</html>
