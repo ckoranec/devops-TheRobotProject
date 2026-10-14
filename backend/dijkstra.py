@@ -47,7 +47,7 @@ class Graph: #Full graph of nodes and edges
         self.adj[b].append(Edge(a, cost, list(reversed(coords_a_to_b)), way_id, highway))
 
 
-def load_walk_graph(osm_path: str):
+def load_walk_graph(osm_path: str): #Modify for json
     coords: dict[str, tuple[float, float]] = {} #OSM ID and coordinate position
     ways: list[tuple[str, str, list[str]]] = [] #
 
