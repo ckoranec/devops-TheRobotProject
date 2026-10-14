@@ -169,7 +169,7 @@ def line_to_geojson(line: list[tuple[float, float]], meters: float, start: str, 
     }
 
 
-def main():
+def main(): #change name to dijkstra()
     parser = argparse.ArgumentParser(description="Dijkstra on OSM red-dotted footways")
     parser.add_argument("osm")
     parser.add_argument("start_lat", type=float)
