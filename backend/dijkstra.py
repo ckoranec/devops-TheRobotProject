@@ -10,6 +10,15 @@ from dataclasses import dataclass, field
 
 ALLOWED = {"footway", "path", "steps", "pedestrian"} #Walk tags that match red dotted lines on map
 
+METERS_PER_DEG_LAT = 111_320.0
+
+def flat_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    lat_scale = METERS_PER_DEG_LAT
+    lon_scale = METERS_PER_DEG_LAT * math.cos(math.radians((lat1 + lat2) / 2))
+    dx = (lon2 - lon1) * lon_scale
+    dy = (lat2 - lat1) * lat_scale
+    return math.hypot(dx, dy)
+
 
 @dataclass
 class Edge: #Line between nodes
@@ -22,10 +31,10 @@ class Edge: #Line between nodes
 
 @dataclass
 class Graph: #Full graph of nodes and edges
-    nodes: dict[str, tuple[float, float]] #Dictionary mapping OSM IDs (str) to coordinate positions (tuple)
-        = field(default_factory = dict) #Each Graph object gets its own dictionary
-    adj: dict[str, list[Edge]] #Adjacency dictionary mapping OSM IDs to list of edges connecting to it (list)
-        = field(default_factory = dict)
+    nodes: dict[str, tuple[float, float]] = field(default_factory = dict) #Dictionary mapping OSM IDs (str) to coordinate positions (tuple)
+       
+    adj: dict[str, list[Edge]] = field(default_factory = dict) #Adjacency dictionary mapping OSM IDs to list of edges connecting to it (list)
+       
 
     def add_node(self, node_id: str, lat: float, lon: float): #Record position and check for adj
         self.nodes[node_id] = (lat, lon) #Set current latitude/longitude position to current OSM ID
@@ -38,7 +47,7 @@ class Graph: #Full graph of nodes and edges
         self.adj[b].append(Edge(a, cost, list(reversed(coords_a_to_b)), way_id, highway))
 
 
-def load_walk_graph(osm_path: str):
+def load_walk_graph(osm_path: str): #Modify for json
     coords: dict[str, tuple[float, float]] = {} #OSM ID and coordinate position
     ways: list[tuple[str, str, list[str]]] = [] #
 
@@ -81,7 +90,7 @@ def load_walk_graph(osm_path: str):
         for ref in refs[1:]:
             lat, lon = coords[ref]
             prev = shape[-1]
-            cost += haversine(prev[0], prev[1], lat, lon)
+            cost += flat_distance(prev[0], prev[1], lat, lon)
             shape.append((lat, lon))
             if ref in routing and ref != last:
                 graph.add_undirected(last, ref, cost, shape, way_id, highway)
@@ -96,7 +105,7 @@ def nearest_routing_node(
     best_id = None
     best = float("inf")
     for node_id, (nlat, nlon) in graph.nodes.items():
-        d = haversine(lat, lon, nlat, nlon)
+        d = flat_distance(lat, lon, nlat, nlon)
         if d < best:
             best = d
             best_id = node_id
@@ -160,7 +169,7 @@ def line_to_geojson(line: list[tuple[float, float]], meters: float, start: str, 
     }
 
 
-def main():
+def main(): #change name to dijkstra()
     parser = argparse.ArgumentParser(description="Dijkstra on OSM red-dotted footways")
     parser.add_argument("osm")
     parser.add_argument("start_lat", type=float)
@@ -184,12 +193,8 @@ def main():
     meters, nodes, line = result
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(line_to_geojson(line, meters, start, goal), fh)
-    print(f"routing nodes: {len(graph.nodes)}")
-    print(f"snapped start {start} ({start_snap:.1f} m) -> goal {goal} ({goal_snap:.1f} m)")
+    print(f"routing nodes: {len(graph.nodes)}") #Change to something else, maybe raise instead of print
+    print(f"snapped start {start}  -> goal {goal} ")
     print(f"path nodes: {len(nodes)}")
     print(f"length: {meters:.1f} m")
     print(f"wrote {args.out}")
-
-
-if __name__ == "__main__":
-    main()
