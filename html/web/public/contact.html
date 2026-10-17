@@ -25,7 +25,7 @@
         <section id="contact" class="card">
             <h2>Contact Us</h2>
             <p>Get in touch with us for any queries or feedback.</p>
-            <form action="submit_contact_form" method="post">
+            <form id="contact-form" action="/api/contact" method="post">
                 <label for="name">Name:</label>
                 <input type="text" id="name" name="name" required>
                 
@@ -35,12 +35,55 @@
                 <label for="message">Message:</label>
                 <textarea id="message" name="message" rows="4" required></textarea>
                 
-                <button type="submit">Send Message</button>
+                <button type="submit" id="contact-submit">Send Message</button>
+                <p id="contact-status" role="status" aria-live="polite"></p>
             </form>
         </section>
     </main>
     <footer>
         <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
     </footer>
+
+    <script>
+    document.getElementById("contact-form").addEventListener("submit", async function (event) {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        const button = document.getElementById("contact-submit");
+        const status = document.getElementById("contact-status");
+
+        const payload = {
+            name: form.elements.name.value.trim(),
+            email: form.elements.email.value.trim(),
+            message: form.elements.message.value.trim()
+        };
+
+        button.disabled = true;
+        status.textContent = "Sending your message...";
+
+        try {
+            const response = await fetch("/api/contact", {
+                method: "POST",
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || "Submission failed.");
+            }
+
+            status.textContent =
+                "Message received successfully. Reference #" + result.submission_id;
+            form.reset();
+        } catch (error) {
+            status.textContent = error.message || "Unable to send message.";
+        } finally {
+            button.disabled = false;
+        }
+    });
+    </script>
+
 </body>
 </html>
