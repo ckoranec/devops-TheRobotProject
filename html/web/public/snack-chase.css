@@ -1,0 +1,257 @@
+/* MAX BYTE SNACK CHASE - LOCAL DEMO */
+body main {width:100%!important;max-width:none!important;overflow:visible!important;padding:12px!important;box-sizing:border-box!important}
+body main .dashboard-container {width:min(1100px,calc(100vw - 28px))!important;max-width:1100px!important;margin:0 auto!important;padding:14px!important;box-sizing:border-box!important;position:relative!important;left:auto!important;right:auto!important;transform:none!important;display:grid!important;grid-template-columns:minmax(0,1.45fr) minmax(300px,1fr)!important;gap:14px!important;align-items:start!important;background:rgba(255,255,255,.94)!important;border:1px solid #ead9ff!important;border-radius:20px!important;box-shadow:0 12px 38px #49288d30!important}
+body main .dashboard-container #gmu-campus-map {grid-column:1!important;grid-row:1 / span 2!important;width:100%!important;height:min(58vh,510px)!important;min-height:350px!important;max-height:none!important;margin:0!important;border:3px solid #c084fc!important;border-radius:15px!important;box-sizing:border-box!important}
+body main .dashboard-container #robot-control-panel {grid-column:2!important;grid-row:1!important;display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;max-width:none!important;margin:0!important;padding:12px!important;box-sizing:border-box!important;border-radius:14px!important;background:linear-gradient(145deg,#fff4ff,#f2e8ff)!important;color:#28114c!important;border:1px solid #e9c8ff!important;position:relative!important;z-index:2!important}
+#robot-control-panel h3,#robot-control-panel p,#robot-control-panel label,#robot-control-panel strong {color:#28114c!important}
+#robot-control-panel h3 {margin:0 0 4px!important;font-size:18px!important}
+#robot-control-panel p {margin:3px 0!important;font-size:12px!important}
+#robot-control-panel button {min-width:65px!important;min-height:36px!important;font-size:13px!important;margin:0!important;padding:6px 9px!important;border-radius:10px!important}
+#robot-control-panel select {min-height:36px!important;font-size:13px!important;width:100%!important}
+#robot-control-panel [style*="display:flex"] {gap:6px!important;margin-bottom:8px!important}
+#robot-simulation-status {display:flex!important;flex-wrap:wrap!important;gap:2px 12px!important;margin-top:6px!important}
+#robot-simulation-status p {margin:2px 0!important}
+#snack-chase-panel {grid-column:2;grid-row:2;border-radius:14px;padding:12px;background:linear-gradient(145deg,#faf1ff,#eaf7ff);color:#251346;border:1px solid #e2c9fa;min-width:0}
+#snack-chase-panel h3 {margin:0 0 5px;font-size:18px;color:#5b21b6}
+#snack-chase-panel p {margin:4px 0;font-size:12px}
+#snack-chase-panel .sc-row {display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:7px 0}
+#snack-chase-panel label {font-size:12px;font-weight:600}
+#snack-chase-panel select,#snack-chase-panel button {border:1px solid #c4a2ed;background:white;color:#35175b;border-radius:9px;padding:6px;font-size:12px;cursor:pointer}
+#snack-chase-panel button:focus-visible,#snack-chase-panel select:focus-visible {outline:3px solid #8b5cf6;outline-offset:2px}
+#snack-chase-panel .sc-primary {background:#7c3aed;color:white;font-weight:700}
+#snack-chase-panel .sc-stats {display:flex;gap:8px;flex-wrap:wrap;font-size:12px;font-weight:700}
+#snack-chase-panel .sc-pill {background:white;padding:5px 9px;border-radius:15px}
+#snack-chase-panel .sc-pad {display:grid;grid-template-columns:repeat(3,40px);grid-template-rows:repeat(2,36px);gap:3px}
+#snack-chase-panel .sc-pad button {font-size:17px;touch-action:manipulation}
+#snack-chase-panel .sc-pad button[data-dir="up"] {grid-column:2;grid-row:1}
+#snack-chase-panel .sc-pad button[data-dir="left"] {grid-column:1;grid-row:2}
+#snack-chase-panel .sc-pad button[data-dir="down"] {grid-column:2;grid-row:2}
+#snack-chase-panel .sc-pad button[data-dir="right"] {grid-column:3;grid-row:2}
+#snack-chase-panel .sc-theme-candy {color:#db2777} #snack-chase-panel .sc-theme-neon {color:#7c3aed}
+.sc-marker {background:none;border:0;overflow:visible}
+.sc-bot {width:37px;height:37px;position:relative;display:grid;place-items:center;filter:drop-shadow(0 2px 4px #35115e99)}
+.sc-bot .sc-head {width:29px;height:24px;background:var(--sc-color,#e879f9);border:3px solid white;border-radius:12px;position:absolute;top:0;box-shadow:inset 0 -3px 0 #0002}
+.sc-bot .sc-face {position:absolute;top:6px;width:19px;height:12px;background:#190b30;border-radius:6px;display:flex;align-items:center;justify-content:space-evenly}
+.sc-bot .sc-eye {width:4px;height:6px;border-radius:50%;background:#fff}
+.sc-bot .sc-ball {position:absolute;bottom:0;width:20px;height:20px;background:radial-gradient(circle at 32% 26%,#fff,#a855f7 40%,#4c1d95);border:2px solid white;border-radius:50%}
+.sc-bot .sc-hat {position:absolute;top:-12px;z-index:2;font-size:15px}
+.sc-food {font-size:24px;filter:drop-shadow(0 2px 3px #3b0764aa)}
+
+
+
+
+/* Filter applies to the whole Leaflet map, including tiles and markers: prototype theme only. */
+@media(max-width:850px) {body main .dashboard-container {display:flex!important;flex-direction:column!important}body main .dashboard-container #gmu-campus-map {height:360px!important;min-height:320px!important;width:100%!important}body main .dashboard-container #robot-control-panel,body main .dashboard-container #snack-chase-panel {width:100%!important}}
+@media(prefers-reduced-motion:reduce) {.max-byte-float {animation:none!important}}
+
+/* MAX BYTE 3 EXPERIENCE LAYERS */
+body main .dashboard-container {width:min(1100px,calc(100% - 24px))!important;max-width:1100px!important;display:grid!important;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)!important;grid-template-rows:auto auto auto!important;gap:12px!important;margin:12px auto!important;left:auto!important;right:auto!important;}
+#max-byte-modes{grid-column:1/-1;grid-row:1;background:linear-gradient(100deg,#fce7f3,#ede9fe,#dbeafe);border:1px solid #e9d5ff;border-radius:14px;padding:12px;color:#3b0764}
+#max-byte-modes strong{font-size:17px}#max-byte-modes p{font-size:12px;margin:7px 0 0}
+.mb-mode-buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:9px}
+.mb-mode-buttons button{background:white;color:#581c87;border:1px solid #d8b4fe;border-radius:12px;padding:10px 14px;font-weight:700;cursor:pointer}
+.mb-mode-buttons button[aria-pressed=true]{background:#7c3aed;color:white;box-shadow:0 2px 8px #7c3aed55}
+body main .dashboard-container #gmu-campus-map {grid-column:1!important;grid-row:2 / span 2!important;height:410px!important;min-height:410px!important;max-height:410px!important;filter:none}
+body main .dashboard-container #robot-control-panel {grid-column:2!important;grid-row:2!important}
+body main .dashboard-container #snack-chase-panel {grid-column:2!important;grid-row:3!important}
+body.mb-mode-1 #snack-chase-panel{display:none!important}
+body.mb-mode-2 #snack-chase-panel{display:block!important}
+body.mb-mode-2 #snack-chase-panel .sc-stats,body.mb-mode-2 #snack-chase-panel .sc-pad,body.mb-mode-2 #sc-start,body.mb-mode-2 #sc-reset{display:none!important}
+body.mb-mode-2 #snack-chase-panel h3{font-size:0}
+body.mb-mode-2 #snack-chase-panel h3:after{content:'Customize your Side Byte';font-size:18px}
+body.mb-mode-3 #snack-chase-panel{display:block!important}
+body.mb-mode-1 #gmu-campus-map{grid-row:2!important}
+body.mb-mode-2 #gmu-campus-map{grid-row:2 / span 2!important}
+/* The standard tile layer remains readable. Theme styling applies to tile images, not the robot or food. */
+body.sc-candy .leaflet-tile-pane{filter:saturate(1.25) hue-rotate(310deg)}
+body.sc-neon .leaflet-tile-pane{filter:saturate(1.6) contrast(1.18) hue-rotate(45deg)}
+body.sc-rainbow .leaflet-tile-pane{filter:saturate(1.6)}
+body.sc-mint .leaflet-tile-pane{filter:saturate(1.35) hue-rotate(65deg)}
+body.mb-mode-1 .leaflet-tile-pane{filter:none!important}
+body.mb-mode-1 #robot-control-panel{grid-row:2!important}
+@media(max-width:850px){body main .dashboard-container{display:flex!important;flex-direction:column!important}body main .dashboard-container #gmu-campus-map{width:100%!important;height:340px!important;min-height:340px!important;max-height:340px!important}body main .dashboard-container #robot-control-panel,body main .dashboard-container #snack-chase-panel{width:100%!important}}
+
+.mb-rolling{position:relative;width:52px;height:54px;filter:drop-shadow(0 3px 4px #5b21b680)}
+.mb-rolling-head{position:absolute;top:0;left:5px;width:42px;height:36px;background:linear-gradient(140deg,#fff,#fbcfe8);border:3px solid #a855f7;border-radius:18px;z-index:2;box-sizing:border-box}
+.mb-rolling-face{position:absolute;inset:7px 5px 5px;background:#180a2c;border-radius:11px;display:flex;align-items:center;justify-content:space-evenly}
+.mb-rolling-face i{height:11px;width:7px;border-radius:50%;background:#e879f9}
+.mb-rolling-ball{position:absolute;bottom:0;left:12px;width:29px;height:29px;border-radius:50%;border:3px solid #fbcfe8;box-sizing:border-box;background:radial-gradient(circle at 28% 25%,#fff,#d946ef 34%,#6b21a8 75%)}
+
+
+/* MB V4: three independent maps; transparent centered customer dashboard */
+body main {width:100%!important;max-width:100%!important;margin:0!important;padding:12px 18px 46px!important;overflow:visible!important;box-sizing:border-box!important}
+body main .dashboard-container {width:min(1100px,calc(100% - 24px))!important;max-width:1100px!important;margin:12px auto 40px!important;padding:14px!important;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;grid-template-rows:auto auto!important;align-items:start!important;gap:14px!important;position:relative!important;left:auto!important;right:auto!important;transform:none!important;background:transparent!important;box-shadow:none!important;border:none!important;overflow:visible!important}
+#max-byte-modes {grid-column:1/-1!important;grid-row:1!important;background:rgba(253,244,255,.88)!important;backdrop-filter:blur(8px);}
+body main .dashboard-container #gmu-campus-map,
+body main .dashboard-container .mb-extra-map {grid-column:1!important;grid-row:2!important;width:100%!important;max-width:100%!important;height:385px!important;min-height:385px!important;max-height:385px!important;margin:0!important;border:2px solid #d8b4fe!important;border-radius:15px!important;box-sizing:border-box!important;overflow:hidden!important;filter:none!important}
+body main .dashboard-container #gmu-campus-map,
+body main .dashboard-container .mb-extra-map {display:none!important}
+body.mb-mode-1 main .dashboard-container #gmu-campus-map {display:block!important}
+body.mb-mode-2 main .dashboard-container #mb-customize-map {display:block!important}
+body.mb-mode-3 main .dashboard-container #mb-game-map {display:block!important}
+body main .dashboard-container #robot-control-panel {grid-column:2!important;grid-row:2!important;margin:0!important;padding:12px!important;background:rgba(255,248,255,.90)!important;backdrop-filter:blur(6px);border:1px solid #d8b4fe!important;box-shadow:none!important;z-index:1!important}
+body main .dashboard-container #snack-chase-panel {grid-column:2!important;grid-row:2!important;margin:0!important;padding:14px!important;background:rgba(255,248,255,.91)!important;backdrop-filter:blur(6px);border:1px solid #d8b4fe!important;box-shadow:none!important;z-index:2!important}
+body.mb-mode-1 main .dashboard-container #robot-control-panel {display:block!important}
+body.mb-mode-2 main .dashboard-container #robot-control-panel,
+body.mb-mode-3 main .dashboard-container #robot-control-panel {display:none!important}
+body.mb-mode-1 main .dashboard-container #snack-chase-panel {display:none!important}
+body.mb-mode-2 main .dashboard-container #snack-chase-panel,
+body.mb-mode-3 main .dashboard-container #snack-chase-panel {display:block!important}
+body.sc-candy .leaflet-tile-pane,body.sc-neon .leaflet-tile-pane,body.sc-rainbow .leaflet-tile-pane,body.sc-mint .leaflet-tile-pane {filter:none!important}
+body.sc-candy #mb-customize-map .leaflet-tile-pane,body.sc-candy #mb-game-map .leaflet-tile-pane {filter:saturate(1.3) hue-rotate(310deg)!important}
+body.sc-neon #mb-customize-map .leaflet-tile-pane,body.sc-neon #mb-game-map .leaflet-tile-pane {filter:saturate(1.6) contrast(1.2) hue-rotate(45deg)!important}
+body.sc-rainbow #mb-customize-map .leaflet-tile-pane,body.sc-rainbow #mb-game-map .leaflet-tile-pane {filter:saturate(1.7)!important}
+body.sc-mint #mb-customize-map .leaflet-tile-pane,body.sc-mint #mb-game-map .leaflet-tile-pane {filter:saturate(1.35) hue-rotate(65deg)!important}
+#mb-copyright {max-width:1100px;margin:26px auto 42px;text-align:center;padding:15px 12px;color:#381650;background:rgba(255,255,255,.74);border-radius:12px;font-size:13px}
+/* Polished CSS robot inspired by the uploaded glossy white/purple/pink reference. */
+.mb-polished {position:relative;width:66px;height:78px;filter:drop-shadow(0 4px 4px #4c1d9555)}
+.mb-polished-antenna {position:absolute;top:0;left:30px;width:7px;height:8px;background:#f9a8d4;border-radius:8px;z-index:4}
+.mb-polished-ear {position:absolute;top:15px;width:13px;height:21px;border-radius:10px;background:linear-gradient(130deg,#fff,#c026d3);border:2px solid #9333ea;z-index:1}
+.mb-polished-ear.left{left:1px}.mb-polished-ear.right{right:1px}
+.mb-polished-head {position:absolute;top:5px;left:8px;width:50px;height:44px;box-sizing:border-box;border-radius:21px;background:linear-gradient(140deg,#fff 12%,#fff 55%,#fbcfe8 100%);border:2px solid #f0abfc;z-index:3;box-shadow:inset -3px -3px 5px #a855f733}
+.mb-polished-face {position:absolute;inset:8px 5px 7px;border-radius:14px;background:linear-gradient(135deg,#020617,#211033);display:flex;align-items:center;justify-content:space-evenly}
+.mb-polished-face i{width:8px;height:14px;background:#d946ef;border-radius:50%;box-shadow:0 0 6px #e879f9}
+.mb-polished-body {position:absolute;top:44px;left:15px;width:36px;height:21px;border-radius:13px 13px 8px 8px;background:linear-gradient(120deg,#fff 10%,#f9a8d4 80%);border:2px solid #a855f7;z-index:2;box-sizing:border-box}
+.mb-polished-ball {position:absolute;bottom:0;left:19px;width:29px;height:29px;border-radius:50%;background:radial-gradient(circle at 27% 25%,#fff,#e879f9 25%,#a21caf 60%,#581c87);border:3px solid #fbcfe8;box-sizing:border-box;z-index:3;box-shadow:0 0 7px #a855f777}
+@media(max-width:850px){body main .dashboard-container{display:flex!important;flex-direction:column!important;width:calc(100% - 12px)!important;padding:8px!important}body main .dashboard-container #gmu-campus-map,body main .dashboard-container .mb-extra-map{width:100%!important;height:330px!important;min-height:330px!important;max-height:330px!important}body main .dashboard-container #robot-control-panel,body main .dashboard-container #snack-chase-panel{width:100%!important}#max-byte-modes{width:100%!important;box-sizing:border-box}}
+
+body footer {position:relative!important;display:block!important;clear:both!important;margin:30px auto 38px!important;max-width:1100px!important;text-align:center!important;z-index:1!important}
+
+
+
+/* MAX_BYTE_CLEAN_LAYOUT_V6 */
+
+/* Center the dashboard and give both columns equal width. */
+body main .dashboard-container {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-rows: auto auto !important;
+    width: min(1100px, calc(100% - 32px)) !important;
+    max-width: 1100px !important;
+    margin: 12px auto 55px !important;
+    padding: 0 !important;
+    gap: 14px !important;
+    align-items: start !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    transform: none !important;
+}
+
+/* Keep the mode selector across both columns. */
+body main .dashboard-container #max-byte-modes {
+    grid-column: 1 / -1 !important;
+    grid-row: 1 !important;
+    margin: 0 !important;
+}
+
+/* All three maps occupy the same left-hand grid position.
+   Only the selected map is visible. */
+body main .dashboard-container #gmu-campus-map,
+body main .dashboard-container #mb-customize-map,
+body main .dashboard-container #mb-game-map {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: clamp(240px, 35vh, 315px) !important;
+    min-height: 240px !important;
+    max-height: 315px !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    border-radius: 14px !important;
+}
+
+/* Hide inactive maps. */
+body main .dashboard-container #gmu-campus-map,
+body main .dashboard-container #mb-customize-map,
+body main .dashboard-container #mb-game-map {
+    display: none !important;
+}
+
+body.mb-mode-1 main .dashboard-container #gmu-campus-map {
+    display: block !important;
+}
+
+body.mb-mode-2 main .dashboard-container #mb-customize-map {
+    display: block !important;
+}
+
+body.mb-mode-3 main .dashboard-container #mb-game-map {
+    display: block !important;
+}
+
+/* Put the relevant control panel in the right-hand column. */
+body main .dashboard-container #robot-control-panel,
+body main .dashboard-container #snack-chase-panel {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    border-radius: 14px !important;
+    position: relative !important;
+}
+
+/* Show only the appropriate controls. */
+body.mb-mode-1 main .dashboard-container #robot-control-panel {
+    display: block !important;
+}
+
+body.mb-mode-1 main .dashboard-container #snack-chase-panel {
+    display: none !important;
+}
+
+body.mb-mode-2 main .dashboard-container #robot-control-panel,
+body.mb-mode-3 main .dashboard-container #robot-control-panel {
+    display: none !important;
+}
+
+body.mb-mode-2 main .dashboard-container #snack-chase-panel,
+body.mb-mode-3 main .dashboard-container #snack-chase-panel {
+    display: block !important;
+}
+
+/* Ensure the original page background stays visible. */
+body main {
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+}
+
+/* On smaller screens, stack the active map and controls. */
+@media (max-width: 850px) {
+    body main .dashboard-container {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: auto auto auto !important;
+    }
+
+    body main .dashboard-container #max-byte-modes {
+        grid-column: 1 !important;
+        grid-row: 1 !important;
+    }
+
+    body main .dashboard-container #gmu-campus-map,
+    body main .dashboard-container #mb-customize-map,
+    body main .dashboard-container #mb-game-map {
+        grid-column: 1 !important;
+        grid-row: 2 !important;
+        height: 300px !important;
+        min-height: 300px !important;
+        max-height: 300px !important;
+    }
+
+    body main .dashboard-container #robot-control-panel,
+    body main .dashboard-container #snack-chase-panel {
+        grid-column: 1 !important;
+        grid-row: 3 !important;
+    }
+}

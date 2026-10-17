@@ -1,0 +1,60 @@
+/* MAX BYTE CONSOLIDATED LAYOUT V9: overrides legacy rules without modifying original delivery JS */
+body main{width:100%!important;max-width:none!important;padding:12px 14px 20px!important;overflow:visible!important;box-sizing:border-box!important}
+body main .dashboard-container.mb-final-layout{width:min(1420px,calc(100vw - 28px))!important;max-width:1420px!important;margin:8px auto 35px!important;padding:0!important;display:grid!important;grid-template-columns:minmax(0,1.18fr) minmax(0,1fr)!important;grid-template-rows:auto auto!important;gap:16px!important;align-items:start!important;background:transparent!important;border:0!important;box-shadow:none!important;overflow:visible!important;position:relative!important;left:auto!important;transform:none!important}
+body main .dashboard-container.mb-final-layout #max-byte-modes{grid-column:1/-1!important;grid-row:1!important;margin:0!important;padding:12px 16px!important}
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column{grid-column:1!important;grid-row:2!important;width:100%!important;min-width:0!important;margin:0!important;padding:14px!important;box-sizing:border-box!important;border-radius:18px!important;background:rgba(255,255,255,.94)!important;box-shadow:0 12px 30px #391b7222!important}
+body main .dashboard-container.mb-final-layout #mb-repaired-controls{grid-column:2!important;grid-row:2!important;min-width:0!important;width:100%!important;display:block!important;margin:0!important;padding:0!important}
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column .data-card{width:100%!important;max-width:none!important;margin:0!important;padding:0!important;display:block!important;background:transparent!important;border:0!important;box-shadow:none!important;grid-column:auto!important;grid-row:auto!important}
+#mb-repaired-map-column h3{font-size:19px!important;margin:0 0 6px!important;color:#40116e!important}
+#mb-repaired-map-column p{font-size:12px!important;margin:5px 0 9px!important;color:#4c3764!important}
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map,body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-customize-map,body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-game-map{width:100%!important;max-width:none!important;height:clamp(420px,57vh,650px)!important;min-height:420px!important;max-height:650px!important;margin:0!important;padding:0!important;box-sizing:border-box!important;border:2px solid #c084fc!important;border-radius:14px!important;overflow:hidden!important;grid-column:auto!important;grid-row:auto!important;filter:none!important}
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map,body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-customize-map,body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-game-map{display:none!important}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map,body.mb-mode-2 main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-customize-map,body.mb-mode-3 main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-game-map{display:block!important}
+body main .dashboard-container.mb-final-layout #mb-repaired-controls #robot-control-panel,body main .dashboard-container.mb-final-layout #mb-repaired-controls #snack-chase-panel{width:100%!important;max-width:none!important;box-sizing:border-box!important;margin:0!important;grid-column:auto!important;grid-row:auto!important;position:relative!important;padding:16px!important}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-controls #robot-control-panel{display:block!important}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-controls #snack-chase-panel{display:none!important}
+body.mb-mode-2 main .dashboard-container.mb-final-layout #mb-repaired-controls #robot-control-panel,body.mb-mode-3 main .dashboard-container.mb-final-layout #mb-repaired-controls #robot-control-panel{display:none!important}
+body.mb-mode-2 main .dashboard-container.mb-final-layout #mb-repaired-controls #snack-chase-panel,body.mb-mode-3 main .dashboard-container.mb-final-layout #mb-repaired-controls #snack-chase-panel{display:block!important}
+body.mb-mode-2 #snack-chase-panel .sc-stats,body.mb-mode-2 #snack-chase-panel .sc-pad,body.mb-mode-2 #sc-start,body.mb-mode-2 #sc-reset,body.mb-mode-2 #sc-game-help{display:none!important}
+body.mb-mode-3 #sc-customize-help{display:none!important}
+body.mb-mode-2 #sc-customize-help{display:block!important}
+body.mb-mode-2 #snack-chase-panel h3{font-size:19px!important}
+#snack-chase-panel .sc-row{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin:11px 0}
+#snack-chase-panel .sc-stats{display:flex;gap:10px;flex-wrap:wrap}
+#snack-chase-panel .sc-pad{display:grid;grid-template-columns:repeat(3,48px);grid-template-rows:repeat(2,44px);gap:5px}
+#snack-chase-panel .sc-pad button{min-width:44px;min-height:40px;font-size:20px}
+#snack-chase-panel .sc-pad button[data-dir=up]{grid-column:2;grid-row:1}
+#snack-chase-panel .sc-pad button[data-dir=left]{grid-column:1;grid-row:2}
+#snack-chase-panel .sc-pad button[data-dir=down]{grid-column:2;grid-row:2}
+#snack-chase-panel .sc-pad button[data-dir=right]{grid-column:3;grid-row:2}
+#snack-chase-panel select{min-height:38px;max-width:100%}
+.sc-marker{background:transparent!important;border:0!important;overflow:visible!important}
+.mb-polished{--mb-accent:#e879f9;--mb-wheel:#a855f7}
+.mb-polished-head{border-color:var(--mb-accent)!important;background:linear-gradient(140deg,#fff 12%,#fff 50%,var(--mb-accent) 100%)!important}
+.mb-polished-ear{border-color:var(--mb-accent)!important}
+.mb-polished-ball{background:radial-gradient(circle at 28% 24%,#fff,var(--mb-wheel) 38%,#4c1d95 90%)!important}
+.mb-polished-hat{position:absolute;z-index:10;top:-18px;left:18px;font-size:26px;filter:drop-shadow(0 2px 2px #35145a88);pointer-events:none}
+.sc-food{display:block;font-size:28px;line-height:34px;filter:drop-shadow(0 3px 3px #3b0764aa)}
+body.sc-candy #mb-customize-map .leaflet-tile-pane,body.sc-candy #mb-game-map .leaflet-tile-pane{filter:saturate(1.6) contrast(1.15) hue-rotate(310deg)!important}
+body.sc-neon #mb-customize-map .leaflet-tile-pane,body.sc-neon #mb-game-map .leaflet-tile-pane{filter:saturate(1.8) contrast(1.3) hue-rotate(45deg)!important}
+body.sc-rainbow #mb-customize-map .leaflet-tile-pane,body.sc-rainbow #mb-game-map .leaflet-tile-pane{filter:saturate(1.8) contrast(1.16)!important}
+body.sc-mint #mb-customize-map .leaflet-tile-pane,body.sc-mint #mb-game-map .leaflet-tile-pane{filter:saturate(1.45) contrast(1.12) hue-rotate(65deg)!important}
+body.mb-mode-1 #gmu-campus-map .leaflet-tile-pane{filter:none!important}
+body footer{display:block!important;position:relative!important;margin:24px auto 32px!important;max-width:1420px!important;text-align:center!important;clear:both!important}
+@media(max-width:900px){body main .dashboard-container.mb-final-layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;grid-template-rows:auto auto auto!important;width:calc(100vw - 24px)!important}body main .dashboard-container.mb-final-layout #max-byte-modes{grid-column:1!important;grid-row:1!important}body main .dashboard-container.mb-final-layout #mb-repaired-map-column{grid-column:1!important;grid-row:2!important}body main .dashboard-container.mb-final-layout #mb-repaired-controls{grid-column:1!important;grid-row:3!important}body main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map,body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-customize-map,body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-game-map{height:390px!important;min-height:390px!important;max-height:390px!important}}
+
+
+/* MAX_BYTE_ROUTE_POLISH_V11: identical map dimensions and background/footer spacing */
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map,
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-customize-map,
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-game-map{
+height:clamp(300px,39vh,390px)!important;min-height:300px!important;max-height:390px!important}
+body main .dashboard-container.mb-final-layout{margin-bottom:16px!important}
+body main{padding-bottom:18px!important}
+body footer{margin-top:30px!important;margin-bottom:35px!important}
+body.mb-mode-2 #snack-chase-panel h3:after{content:none!important}
+@media(max-width:900px){
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map,
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-customize-map,
+body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-game-map{
+height:340px!important;min-height:340px!important;max-height:340px!important}}

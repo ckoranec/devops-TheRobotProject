@@ -1,0 +1,176 @@
+
+/* ==== Reset & Globals ==== */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+html, body {
+    height: 100%;
+    overflow: hidden; /* Prevent full page overflow */
+}
+body {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    font-family: 'Inter', sans-serif;
+    background: url('../data/images/bgImage/campus_Eats.png') no-repeat center center/cover;
+    color: #2c2c2c;
+    line-height: 1.6;
+    margin: 0;
+}
+main {
+    flex: 1;
+    overflow-y: auto;
+}
+a {
+    text-decoration: none;
+    color: inherit;
+}
+img {
+    max-width: 100%;
+    display: block;
+}
+
+.menu-image {
+    width: 100%;
+    max-width: 180px;
+    height: auto;
+    object-fit: cover;
+    border-radius: 10px;
+    display: block;
+    margin: 0 auto 0.5rem auto;
+}
+
+/* ==== Layout Containers ==== */
+header, footer {
+    background-color: #1f1f2e;
+    color: #fff;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+nav ul {
+    list-style: none;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+nav a {
+    color: #fff;
+    font-weight: 600;
+    padding: 0.5rem 1.2rem;
+    border-radius: 6px;
+    transition: background-color 0.3s;
+}
+nav a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+main {
+    padding: 3rem 2rem;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* ==== Hero Banner ==== */
+.hero {
+    background: linear-gradient(rgba(31,31,46,0.85), rgba(31,31,46,0.85)), url('img/hero-food.jpg') no-repeat center center/cover;
+    color: white;
+    text-align: center;
+    padding: 6rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 3rem;
+}
+.hero h2 {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+}
+.hero p {
+    font-size: 1.25rem;
+    max-width: 700px;
+    margin: 0 auto 2rem;
+}
+.hero button {
+    background-color: #ff6b6b;
+    color: white;
+    padding: 0.9rem 2rem;
+    font-size: 1rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+.hero button:hover {
+    background-color: #e44d4d;
+}
+
+/* ==== Cards & Sections ==== */
+section {
+    margin-bottom: 3rem;
+}
+.card {
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    padding: 2rem;
+    margin: 2rem auto;
+    max-width: 90%;
+}
+.card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+.card ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+.card li {
+    margin-bottom: 0.8rem;
+    line-height: 1.4;
+}
+
+/* ==== Form Styling ==== */
+form {
+    background-color: white;
+    padding: 2rem 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    max-width: 600px;
+    margin: 2rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+input, select, textarea {
+    padding: 0.9rem;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background-color: #f9f9f9;
+}
+button {
+    background-color: #1f1f2e;
+    color: white;
+    padding: 0.9rem;
+    border: none;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+button:hover {
+    background-color: #373751;
+}
+
+/* ==== Sticky Footer ==== */
+footer {
+    font-size: 0.9rem;
+    text-align: center;
+    margin-top: auto;
+}

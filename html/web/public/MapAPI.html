@@ -63,6 +63,429 @@
             margin-right: 5px;
         }
     </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+<style>
+/* MAX Byte animated robot marker */
+.max-byte-cute-marker {
+    background: transparent;
+    border: 0;
+}
+.max-byte-float {
+    animation: maxByteFloat 2s ease-in-out infinite;
+    filter: drop-shadow(0 3px 4px rgba(0,0,0,.2));
+}
+@keyframes maxByteFloat {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .max-byte-float { animation: none; }
+}
+</style>
+
+
+<style>
+/* MAX Byte: expanded campus map layout */
+.dashboard-container {
+    max-width: 1600px !important;
+    width: 96% !important;
+    margin: 0 auto !important;
+}
+
+#gmu-campus-map {
+    height: 700px !important;
+    min-height: 500px;
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        width: 98% !important;
+    }
+
+    #gmu-campus-map {
+        height: 65vh !important;
+        min-height: 420px;
+    }
+}
+</style>
+
+
+<style id="max-byte-wide-map-v2">
+/* MAX Byte: near-full-width campus map */
+#gmu-campus-map {
+    position: relative;
+    width: 96vw !important;
+    max-width: none !important;
+    height: 700px !important;
+    min-height: 500px;
+    margin-left: calc(50% - 48vw) !important;
+    margin-right: calc(50% - 48vw) !important;
+    border-radius: 14px;
+    box-sizing: border-box;
+}
+
+/* Prevent horizontal page scrolling */
+body {
+    overflow-x: clip;
+}
+
+@media (max-width: 768px) {
+    #gmu-campus-map {
+        width: 98vw !important;
+        margin-left: calc(50% - 49vw) !important;
+        margin-right: calc(50% - 49vw) !important;
+        height: 65vh !important;
+        min-height: 420px;
+    }
+}
+</style>
+
+
+<style id="max-byte-dashboard-v4">
+
+/* Expand the complete map dashboard */
+.dashboard-container {
+    width: 98vw !important;
+    max-width: 98vw !important;
+    margin-left: calc(50% - 49vw) !important;
+    margin-right: calc(50% - 49vw) !important;
+    box-sizing: border-box;
+}
+
+/* Keep the Leaflet map wide and readable */
+#gmu-campus-map {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 700px !important;
+    margin: 0 !important;
+    border-radius: 14px !important;
+}
+
+/* Make the control center easier to use */
+#robot-control-panel {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    padding: 28px !important;
+    margin: 18px 0 !important;
+    border-radius: 14px !important;
+    font-size: 18px !important;
+}
+
+#robot-control-panel button {
+    min-width: 145px;
+    min-height: 56px;
+    padding: 12px 20px !important;
+    margin: 6px !important;
+    font-size: 18px !important;
+    font-weight: 700;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+#robot-control-panel select {
+    min-height: 50px;
+    padding: 10px 14px !important;
+    font-size: 17px !important;
+    max-width: 100%;
+}
+
+#robot-control-panel p {
+    font-size: 18px !important;
+    line-height: 1.8 !important;
+}
+
+/* Smaller mascot while retaining its SVG artwork */
+.max-byte-cute-marker {
+    background: transparent !important;
+    border: none !important;
+}
+
+.max-byte-cute-marker svg {
+    width: 52px !important;
+    height: 52px !important;
+}
+
+/* Responsive phone and tablet support */
+@media (max-width: 768px) {
+    .dashboard-container {
+        width: 98vw !important;
+        max-width: 98vw !important;
+    }
+
+    #gmu-campus-map {
+        height: 65vh !important;
+        min-height: 420px;
+    }
+
+    #robot-control-panel {
+        padding: 16px !important;
+    }
+
+    #robot-control-panel button {
+        min-width: 100px;
+        font-size: 16px !important;
+    }
+}
+
+</style>
+
+
+<style id="max-byte-full-width-housing-v5">
+
+/* Remove the main page's 1200px restriction */
+html, body {
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    overflow-x: clip !important;
+}
+
+/* Expand the actual parent housing */
+body main {
+    width: 100vw !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 16px 1vw 32px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+
+/* Expand the entire dashboard, not only the map */
+body main .dashboard-container {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+    z-index: 1;
+}
+
+/* Keep the map inside the newly enlarged housing */
+body main .dashboard-container #gmu-campus-map {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 700px !important;
+    min-height: 500px;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Match the controls to the map width */
+body main .dashboard-container #robot-control-panel {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    padding: 28px !important;
+    margin: 20px 0 !important;
+}
+
+/* Make controls visible and usable */
+#robot-control-panel button {
+    min-height: 56px !important;
+    min-width: 140px !important;
+    font-size: 18px !important;
+}
+
+#robot-control-panel select {
+    min-height: 52px !important;
+    font-size: 18px !important;
+}
+
+@media (max-width: 768px) {
+    body main {
+        padding: 8px !important;
+    }
+
+    body main .dashboard-container {
+        padding: 10px !important;
+    }
+
+    body main .dashboard-container #gmu-campus-map {
+        height: 65vh !important;
+        min-height: 420px;
+    }
+
+    #robot-control-panel button {
+        min-width: 100px !important;
+    }
+}
+
+</style>
+
+
+<style id="max-byte-layout-v7">
+
+/* Preserve the expanded outer webpage housing */
+body main {
+    width: 100vw !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+}
+
+/* Full-width dashboard housing */
+body main .dashboard-container {
+    width: 100% !important;
+    max-width: none !important;
+    padding: 16px 20px !important;
+    box-sizing: border-box !important;
+}
+
+/* Shorter map allows controls to appear sooner */
+body main .dashboard-container #gmu-campus-map {
+    width: 100% !important;
+    max-width: none !important;
+    height: 480px !important;
+    min-height: 400px !important;
+    margin: 0 !important;
+}
+
+/* Visible full-width control center */
+body main .dashboard-container #robot-control-panel {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    max-width: none !important;
+    box-sizing: border-box !important;
+    padding: 20px 24px !important;
+    margin: 12px 0 18px !important;
+    background: rgba(10, 23, 44, 0.96) !important;
+    color: white !important;
+    border: 2px solid #60a5fa !important;
+    border-radius: 14px !important;
+    position: relative !important;
+    z-index: 5 !important;
+}
+
+/* Improve control visibility */
+#robot-control-panel h3,
+#robot-control-panel p,
+#robot-control-panel label,
+#robot-control-panel strong {
+    color: white !important;
+}
+
+#robot-control-panel button {
+    min-width: 125px !important;
+    min-height: 52px !important;
+    font-size: 17px !important;
+    font-weight: 700 !important;
+    margin: 5px !important;
+    cursor: pointer;
+}
+
+#robot-control-panel select {
+    min-height: 50px !important;
+    font-size: 17px !important;
+    max-width: 100%;
+}
+
+/* Remove decorative vertical movement from mascot */
+.max-byte-float {
+    animation: none !important;
+    transform: none !important;
+}
+
+/* Responsive mobile layout */
+@media (max-width: 768px) {
+    body main .dashboard-container {
+        padding: 8px !important;
+    }
+
+    body main .dashboard-container #gmu-campus-map {
+        height: 45vh !important;
+        min-height: 320px !important;
+    }
+
+    body main .dashboard-container #robot-control-panel {
+        padding: 14px !important;
+    }
+
+    #robot-control-panel button {
+        min-width: 95px !important;
+        font-size: 15px !important;
+    }
+}
+
+</style>
+
+
+<style id="max-byte-layout-v8">
+
+/* Compact full-width map */
+body main .dashboard-container #gmu-campus-map {
+    height: 350px !important;
+    min-height: 350px !important;
+    max-height: 350px !important;
+}
+
+/* Compact control panel below map */
+body main .dashboard-container #robot-control-panel {
+    padding: 12px 18px !important;
+    margin: 8px 0 !important;
+    border-radius: 12px !important;
+}
+
+#robot-control-panel h3 {
+    margin: 0 0 6px !important;
+    font-size: 21px !important;
+}
+
+#robot-control-panel p {
+    margin: 4px 0 !important;
+}
+
+#robot-control-panel button {
+    min-height: 42px !important;
+    min-width: 105px !important;
+    font-size: 16px !important;
+}
+
+#robot-control-panel select {
+    min-height: 40px !important;
+    font-size: 16px !important;
+}
+
+#robot-simulation-status {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px 22px !important;
+    margin-top: 8px !important;
+}
+
+#robot-simulation-status p {
+    margin: 2px 0 !important;
+}
+
+/* Disable decorative bouncing */
+.max-byte-float {
+    animation: none !important;
+    transform: none !important;
+}
+
+@media (max-width: 768px) {
+    body main .dashboard-container #gmu-campus-map {
+        height: 300px !important;
+        min-height: 300px !important;
+        max-height: 300px !important;
+    }
+}
+
+</style>
+
+<link rel="stylesheet" href="snack-chase.css?v=4">
 </head>
 <body>
     <header>
@@ -81,67 +504,85 @@
 
     <main>
         <div class="dashboard-container">
-            <h2>GIS & Routing Infrastructure</h2>
-            <p>This dashboard provides an overview of the data and scripts powering the robotic delivery routing engine for the George Mason University campus.</p>
 
+            <!-- Interactive GMU campus map: Overpass GIS overlay -->
             <div class="data-card">
-                <h3>Campus GIS Data</h3>
-                <p><strong>File:</strong> <code>html/data/gmu_map.json</code></p>
-                <p>This file contains the road network and sidewalk nodes extracted from OpenStreetMap. It serves as the base graph for the A* routing algorithm.</p>
-                <div class="tag">JSON Format</div>
-                <div class="tag">OSM Overpass API</div>
-                <div class="code-block">
-{
-  "version": 0.6,
-  "generator": "Overpass API",
-  "elements": [
-    { "type": "way", "id": 8836894, "tags": { "highway": "service", "name": "Aquia Creek Lane" } },
-    ...
-  ]
-}
-                </div>
+                <h3>Interactive GMU Campus Map</h3>
+                <p>OpenStreetMap basemap with locally stored Overpass API data.</p>
+                <div id="gmu-campus-map" style="height:700px;width:100%;border-radius:10px;" role="region" aria-label="Interactive George Mason University campus map"></div>
+                <p id="gmu-map-status" aria-live="polite">Loading campus GIS data...</p>
             </div>
-
-            <div class="data-card">
-                <h3>GIS Update Utility</h3>
-                <p><strong>File:</strong> <code>html/mapAPI.py</code></p>
-                <p>A Python-based utility script that connects to the Overpass API to fetch the latest campus geography. It handles the conversion of raw GIS data into the project's standardized JSON format.</p>
-                <div class="tag">Python 3</div>
-                <div class="tag">Requests Lib</div>
-                <div class="code-block">
-import requests
-QUERY = """
-[out:json][timeout:25];
-way["highway"](38.830,-77.310,38.831,-77.309);
-out geom;
-"""
-# Fetches data and saves to html/data/gmu_map.json
-                </div>
-            </div>
-
-                <div class="data-card">
-                    <h3>Interactive Tracking</h3>
-                    <p>The frontend interface that overlays the GIS data onto a Leaflet-powered map, allowing real-time delivery monitoring and ETA calculation.</p>
-                    <div class="btn-group">
-                        <a href="tracking.html" class="btn btn-primary">Launch Interactive Map</a>
-                        <a href="https://github.com/ckoranec/devops-TheRobotProject" class="btn btn-secondary">View Source on GitHub</a>
-                    </div>
-                </div>
-
-                <div class="data-card" style="border-left: 5px solid #ff6b6b;">
-                    <h3>Deployment Note</h3>
-                    <p>If you see a 404 error when visiting this page, please ensure the server has pulled the latest changes from the <code>DevOps</code> branch:</p>
-                    <div class="code-block">
-git checkout DevOps
-git pull origin DevOps
-                    </div>
-                    <p>The web server should be configured to serve from the <code>html/web/public/</code> directory.</p>
-                </div>
             </div>
     </main>
 
     <footer>
         <p>&copy; 2023 Campus Eats. All rights reserved.</p>
     </footer>
+
+    <!-- Leaflet displays OpenStreetMap tiles and Overpass road geometry. -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+    "use strict";
+
+    // Start near George Mason University's Fairfax campus.
+    const campusMap = L.map("gmu-campus-map").setView([38.8308, -77.3075], 16);
+
+    // Basemap imagery is supplied by OpenStreetMap contributors.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 19,
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'
+    }).addTo(campusMap);
+
+    // Load the Overpass JSON already verified in the browser.
+    fetch("data/gmu_map.json")
+        .then(response => {
+            if (!response.ok) throw new Error("GIS HTTP " + response.status);
+            return response.json();
+        })
+        .then(data => {
+            const lines = [];
+
+            for (const element of data.elements || []) {
+                if (element.type !== "way" || !Array.isArray(element.geometry)) continue;
+
+                const coordinates = element.geometry
+                    .filter(point => Number.isFinite(point.lat) && Number.isFinite(point.lon))
+                    .map(point => [point.lat, point.lon]);
+
+                if (coordinates.length < 2) continue;
+
+                const isFootway = element.tags?.highway === "footway";
+                const line = L.polyline(coordinates, {
+                    color: isFootway ? "#16a34a" : "#ff6b6b",
+                    weight: 5
+                }).addTo(campusMap);
+
+                line.bindPopup(element.tags?.name || (isFootway ? "Campus footway" : "Campus road"));
+                lines.push(line);
+            }
+
+            if (lines.length) {
+                campusMap.fitBounds(L.featureGroup(lines).getBounds(), {
+                    padding: [35, 35],
+                    maxZoom: 17
+                });
+            }
+
+            document.getElementById("gmu-map-status").textContent =
+                "Loaded " + lines.length + " GIS ways. Red = road; green = footway.";
+        })
+        .catch(error => {
+            document.getElementById("gmu-map-status").textContent =
+                "Unable to load campus GIS data: " + error.message;
+            console.error("GMU GIS loading error:", error);
+        });
+    </script>
+    
+
+<!-- MAX Byte robot simulation: 10-second GPS updates. -->
+<script src="robot-simulation.js?v=11"></script>
+<script src="snack-chase.js?v=11"></script>
+<link rel="stylesheet" href="max-byte-layout-repair.css?v=11">
+<script src="max-byte-layout-repair.js?v=9"></script>
 </body>
 </html>
