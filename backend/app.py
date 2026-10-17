@@ -1,8 +1,9 @@
 from datetime import datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, jsonify, request, send_from_directory, session
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import LoginManager, login_user, logout_user, current_user, login_required
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from sqlalchemy.exc import SQLAlchemyError
@@ -46,6 +47,36 @@ def create_app(test_config=None):
         default_limits=[],
         storage_uri="memory://",
     )
+
+    # AUTH_INTEGRATION_V1
+    import os
+    import secrets
+    from sqlalchemy.exc import IntegrityError
+    from backend.auth import User
+
+    app.config["SECRET_KEY"] = (
+        app.config.get("SECRET_KEY")
+        or os.environ.get("MAX_BYTE_SECRET_KEY")
+        or secrets.token_hex(32)
+    )
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+    )
+
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        try:
+            return db.session.get(User, int(user_id))
+        except (ValueError, TypeError):
+            return None
+
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        return jsonify(error="Authentication required"), 401
 
     db.init_app(app)
 
@@ -111,6 +142,107 @@ def create_app(test_config=None):
             submission_id=submission.id,
         ), 201
 
+
+
+    def auth_json():
+        if not request.is_json:
+            return None, (jsonify(error="JSON request required"), 415)
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict):
+            return None, (jsonify(error="Invalid JSON object"), 400)
+        return data, None
+
+    @app.post("/api/auth/register")
+    @limiter.limit("5 per minute")
+    def register():
+        data, error = auth_json()
+        if error:
+            return error
+
+        email = data.get("email")
+        password = data.get("password")
+
+        if not isinstance(email, str) or not isinstance(password, str):
+            return jsonify(error="Email and password required"), 400
+
+        email = email.strip().lower()
+
+        if (
+            not 3 <= len(email) <= 254
+            or email.count("@") != 1
+            or "." not in email.rsplit("@", 1)[-1]
+            or any(c.isspace() for c in email)
+        ):
+            return jsonify(error="Invalid email"), 400
+
+        if len(password) < 12 or len(password) > 128:
+            return jsonify(error="Password must be 12 to 128 characters"), 400
+
+        if db.session.query(User.id).filter_by(email=email).first():
+            return jsonify(error="Account already exists"), 409
+
+        user = User(email=email, role="customer")
+        user.set_password(password)
+
+        try:
+            db.session.add(user)
+            db.session.commit()
+        except IntegrityError:
+            db.session.rollback()
+            return jsonify(error="Account already exists"), 409
+        except SQLAlchemyError:
+            db.session.rollback()
+            app.logger.exception("Registration database error")
+            return jsonify(error="Registration unavailable"), 500
+
+        return jsonify(status="registered", user_id=user.id), 201
+
+    @app.post("/api/auth/login")
+    @limiter.limit("5 per minute")
+    def login():
+        data, error = auth_json()
+        if error:
+            return error
+
+        email = data.get("email")
+        password = data.get("password")
+
+        if not isinstance(email, str) or not isinstance(password, str):
+            return jsonify(error="Invalid credentials"), 401
+
+        user = db.session.query(User).filter_by(
+            email=email.strip().lower()
+        ).first()
+
+        if user is None or not user.check_password(password):
+            return jsonify(error="Invalid credentials"), 401
+
+        session.clear()
+        login_user(user, remember=False, fresh=True)
+        return jsonify(status="authenticated", role=user.role), 200
+
+    @app.post("/api/auth/logout")
+    @login_required
+    def logout():
+        logout_user()
+        session.clear()
+        return jsonify(status="logged_out"), 200
+
+    @app.get("/api/auth/me")
+    @login_required
+    def me():
+        return jsonify(
+            user_id=current_user.id,
+            email=current_user.email,
+            role=current_user.role,
+        )
+
+    @app.get("/api/staff/check")
+    @login_required
+    def staff_check():
+        if not current_user.is_staff():
+            return jsonify(error="Staff access required"), 403
+        return jsonify(status="authorized", role="staff"), 200
 
     # Serve the existing public HTML/CSS/JS from the same origin as the API.
     public_dir = Path(__file__).resolve().parent.parent / "html" / "web" / "public"
