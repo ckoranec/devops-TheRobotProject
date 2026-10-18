@@ -3,3 +3,16 @@
 
 /* V33: preserve native hidden state for signed-out account actions. */
 [hidden]{display:none!important}
+
+
+/* V34: compact delivery form only; never targets the three delivery/game maps. */
+.customer-delivery-page main{padding:14px 20px}
+.customer-delivery-page .page-intro{margin-bottom:8px}.customer-delivery-page .page-intro h1{font-size:25px}
+.customer-delivery-page .steps{margin:9px 0}.customer-delivery-page .notice{padding:7px 11px;margin:8px 0 12px}
+.customer-delivery-page .card{padding:15px}.customer-delivery-page .pickup{padding:7px 10px;margin-bottom:8px}
+.customer-delivery-page .account-box{margin-bottom:8px;padding:0 10px 6px}
+.customer-delivery-page label{margin:6px 0 3px}.customer-delivery-page input:not([type=checkbox]){min-height:36px;padding:7px 9px}
+.customer-delivery-page button{padding:7px 11px}.customer-delivery-page details{padding-top:6px;margin-top:8px}
+.customer-delivery-page .small{margin:6px 0;line-height:1.3}.customer-delivery-page #status{margin:7px 0;min-height:18px}
+.customer-delivery-page #metrics:not(:empty){padding:7px}.customer-delivery-page .confirm{font-size:12px}
+.customer-delivery-page .flow-footer{margin:10px 0}.customer-delivery-page #location-map{height:clamp(360px,54vh,590px)}

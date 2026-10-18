@@ -1,143 +1,16 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAXX Byte - Order</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <style>
-        .order-container {
-            max-width: 800px;
-            margin: 20px auto;
-            display: grid;
-            grid-template-columns: 1fr 300px;
-            gap: 20px;
-        }
-        .order-form-card {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-        }
-        .order-summary-card {
-            background: #1f1f2e;
-            color: white;
-            padding: 20px;
-            border-radius: 12px;
-            height: fit-content;
-        }
-        .order-summary-card h3 { color: #ff6b6b; margin-bottom: 15px; }
-        .summary-item {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 10px;
-            border-bottom: 1px solid #333;
-            padding-bottom: 5px;
-        }
-        .total { font-size: 1.2rem; font-weight: bold; margin-top: 15px; border-bottom: none; }
-        .checkout-btn {
-            background: #ff6b6b;
-            width: 100%;
-            margin-top: 20px;
-        }
-        @media (max-width: 768px) {
-            .order-container { grid-template-columns: 1fr; }
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <h1>MAXX Byte</h1>
-        <nav>
-            <ul>
-                <li><a href="index.html#home">Home</a></li>
-                <li><a href="menu.html#menu">Menu</a></li>
-                <li><a href="tracking.html">Track Delivery</a></li>
-                <li><a href="MapAPI.html">GIS Dashboard</a></li>
-                <li><a href="login.html">Login</a></li>
-                <li><a href="about.html#about">About Us</a></li>
-                <li><a href="contact.html#contact">Contact</a></li>
-                <li><a href="order.html#order">Order</a></li>
-            </ul>
-        </nav>
-    </header>
-
-    <main>
-        <div class="order-container">
-            <div class="order-form-card">
-                <h2>Place Your Order</h2>
-                <p>Select your favorite meals and have them delivered to your dorm room.</p>
-    
-                <form id="orderForm" action="#" method="post">
-                    <label for="name">Full Name:</label>
-                    <input type="text" id="name" name="name" placeholder="Jane Doe" required>
-    
-                    <label for="studentId">Student ID:</label>
-                    <input type="text" id="studentId" name="studentId" placeholder="S1234567" required>
-    
-                    <label for="food">Select Your Meal:</label>
-                    <select id="food" name="food" onchange="updateSummary()" required>
-                        <option value="" data-price="0">-- Choose a meal --</option>
-                        <option value="Campus Classic Burger" data-price="6.99">Campus Classic Burger - $6.99</option>
-                        <option value="Veggie Dorm Delight" data-price="5.99">Veggie Dorm Delight - $5.99</option>
-                        <option value="Bacon Beast" data-price="8.49">Bacon Beast - $8.49</option>
-                        <option value="Sushi Combo" data-price="9.99">Sushi Combo - $9.99</option>
-                        <option value="Protein Power Bowl" data-price="7.99">Protein Power Bowl - $7.99</option>
-                    </select>
-    
-                    <label for="specialInstructions">Special Instructions:</label>
-                    <textarea id="specialInstructions" name="specialInstructions" rows="3" placeholder="Allergy info, dorm delivery tips, etc."></textarea>
-    
-                    <button type="submit" class="checkout-btn">Complete Checkout</button>
-                </form>
-            </div>
-
-            <div class="order-summary-card">
-                <h3>Order Summary</h3>
-                <div id="summaryItems">
-                    <div class="summary-item">
-                        <span>Items</span>
-                        <span id="summaryMeal">-</span>
-                    </div>
-                </div>
-                <div class="summary-item">
-                    <span>Delivery Fee</span>
-                    <span>$1.99</span>
-                </div>
-                <div class="summary-item total">
-                    <span>Total</span>
-                    <span id="summaryTotal">$0.00</span>
-                </div>
-                <p style="font-size: 0.8rem; opacity: 0.7; margin-top: 20px;">
-                    Estimated delivery time: 15-20 mins
-                </p>
-            </div>
-        </div>
-    </main>
-
-    <script>
-        function updateSummary() {
-            const foodSelect = document.getElementById('food');
-            const selectedOption = foodSelect.options[foodSelect.selectedIndex];
-            const price = parseFloat(selectedOption.getAttribute('data-price'));
-            const mealName = selectedOption.value;
-
-            if (price > 0) {
-                document.getElementById('summaryMeal').innerText = mealName + ' ($' + price.toFixed(2) + ')';
-                document.getElementById('summaryTotal').innerText = '$' + (price + 1.99).toFixed(2);
-            } else {
-                document.getElementById('summaryMeal').innerText = '-';
-                document.getElementById('summaryTotal').innerText = '$0.00';
-            }
-        }
-    </script>
-
-    <footer>
-        <p>&copy; 2023 MAXX Byte. All rights reserved.</p>
-    </footer>
-<!-- V31 account checkout; server totals and one-use coupon redemption. -->
-<script src="purchase-checkout.js?v=31"></script>
-<!-- V32 customer access links; existing page layout retained. -->
-<script src="customer-navigation.js?v=32"></script>
-</body>
-</html>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Order | MAXX Bytes</title>
+<link rel="stylesheet" href="customer-pages.css?v=34"><link rel="stylesheet" href="site-navigation.css?v=34"><link rel="stylesheet" href="checkout.css?v=34"></head><body><header class="maxx-site-header"><h1>MAXX Bytes</h1><nav aria-label="Main navigation"><ul><li><a href="index.html#home">Home</a></li><li><a href="login.html">Login</a></li><li><a href="coupon-wallet.html">My coupons</a></li><li><a href="menu.html#menu">Menu</a></li><li><a href="order.html#order">Order</a></li><li><a href="tracking.html">Track Delivery</a></li><li><a href="about.html#about">About MAXX Bytes</a></li><li><a href="contact.html#contact">Contact Us</a></li></ul></nav></header>
+<main id="order"><div class="page-intro"><div><h1>Choose your food</h1><p>Your saved delivery, food and reward in one place.</p></div><a class="badge" href="delivery-location.html">Change delivery location</a></div>
+<ol class="steps" aria-label="Order steps"><li><a data-flow-step href="delivery-location.html">1 · Delivery location</a></li><li><a data-flow-step href="order.html#order">2 · Choose food & checkout</a></li><li><a data-flow-step href="tracking.html">3 · Track & play</a></li></ol>
+<div class="checkout-layout"><section class="card"><h2>Your delivery order</h2>
+<form id="orderForm" method="post" action="/api/customer/checkout/complete"><label for="purchase-mission">Saved delivery location</label><select id="purchase-mission" required><option value="">Loading locations…</option></select>
+<div class="checkout-fields"><div><label for="food">Meal</label><select id="food" required><option value="">Loading menu…</option></select></div><div><label for="purchase-quantity">Quantity</label><input id="purchase-quantity" type="number" min="1" max="20" step="1" value="1" required></div></div>
+<label for="purchase-coupon">Coupon code · optional</label><input id="purchase-coupon" maxlength="40" autocomplete="off" placeholder="Your earned coupon">
+<div class="checkout-actions"><button id="purchase-quote" class="secondary" type="button">Update total</button><a href="coupon-wallet.html">My coupons</a></div>
+<p id="purchase-status" role="status" aria-live="polite">Loading your account…</p>
+<div id="purchase-result" hidden><a id="purchase-open-map" class="button" href="tracking.html">Track this purchase & play Snack Chase</a></div>
+<button id="purchase-submit" type="submit" disabled>Checking checkout availability…</button>
+<p class="small"><a href="login.html?next=order.html">Sign in / create account</a> · <a href="delivery-location.html">Save a delivery location</a></p>
+</form></section>
+<aside class="card checkout-summary" aria-label="Order summary"><h2>Order summary</h2><p id="summaryMeal">Choose a meal.</p><dl><div><dt>Food</dt><dd id="summarySubtotal">$0.00</dd></div><div><dt>Coupon savings</dt><dd id="summaryDiscount">$0.00</dd></div><div><dt>Delivery</dt><dd id="summaryDelivery">$0.00</dd></div><div class="checkout-total"><dt>Total</dt><dd id="summaryTotal">$0.00</dd></div></dl><p id="checkout-mode" class="notice">Checking order mode…</p><p class="small">One qualifying purchase gives one Snack Chase attempt. Collect every food piece before arrival to earn 15% off your next purchase.</p></aside></div></main>
+<script src="customer-navigation.js?v=34"></script><script src="purchase-checkout.js?v=34"></script></body></html>

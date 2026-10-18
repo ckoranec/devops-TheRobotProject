@@ -498,21 +498,10 @@ body main .dashboard-container #robot-control-panel {
 <!-- V26: every fresh or restored page opens on Classic. -->
 <script id="mb-classic-startup">try{localStorage.setItem('max-byte-mode','1');}catch(e){}window.addEventListener('pageshow',()=>window.maxByteApplyMode?.(1));</script>
 <script src="customer-game-arena.js?v=26"></script>
+<link rel="stylesheet" href="site-navigation.css?v=34">
 </head>
 <body>
-    <header>
-        <h1>Campus Eats</h1>
-        <nav>
-            <ul>
-                <li><a href="index.html#home">Home</a></li>
-                <li><a href="menu.html#menu">Menu</a></li>
-                <li><a href="tracking.html">Track Delivery</a></li>
-                <li><a href="MapAPI.html">GIS Dashboard</a></li>
-                <li><a href="login.html">Login</a></li>
-                <li><a href="order.html#order">Order</a></li>
-            </ul>
-        </nav>
-    </header>
+    <header class="maxx-site-header"><h1>MAXX Bytes</h1><nav aria-label="Main navigation"><ul><li><a href="index.html#home">Home</a></li><li><a href="login.html">Login</a></li><li><a href="coupon-wallet.html">My coupons</a></li><li><a href="menu.html#menu">Menu</a></li><li><a href="order.html#order">Order</a></li><li><a href="tracking.html">Track Delivery</a></li><li><a href="about.html#about">About MAXX Bytes</a></li><li><a href="contact.html#contact">Contact Us</a></li></ul></nav></header>
 
     <main>
         <div class="dashboard-container">
@@ -603,8 +592,8 @@ body main .dashboard-container #robot-control-panel {
 <script src="shared-map-layout.js?v=30"></script>
 <!-- Shared robot artwork and outbound/return route legend. -->
 <!-- V27 shared cute mascot, hats and game-only legend. -->
-<script src="map-personality.js?v=30"></script>
+<script src="map-personality.js?v=34"></script>
 <!-- V32 customer access links; existing page layout retained. -->
-<script src="customer-navigation.js?v=32"></script>
+<script src="customer-navigation.js?v=34"></script>
 </body>
 </html>

@@ -1,0 +1,14 @@
+/* V34: natural document flow; no nested transaction scrollers or fixed widths. */
+html,body{height:auto;min-height:100%;overflow:visible}body{display:block}
+.maxx-site-header{padding:10px 20px;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:8px 24px}.maxx-site-header h1{font-size:23px;margin:0}.maxx-site-header a{padding:4px}
+main{max-width:1160px;padding:18px 24px}.page-intro{margin-bottom:8px}.page-intro h1{font-size:26px}.steps{margin:10px 0 14px}
+.checkout-layout{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(250px,.8fr);gap:18px;align-items:start}
+.checkout-layout .card{min-width:0;padding:18px;overflow:visible;max-height:none}
+#orderForm{display:grid;gap:8px;margin:0;padding:0;max-width:none;min-width:0;overflow:visible}
+#orderForm label{margin:2px 0;font-size:13px}#orderForm input,#orderForm select{width:100%;min-width:0;max-width:100%;min-height:38px;padding:7px 9px;font:inherit;border:1px solid #ccb9dc;border-radius:8px;box-sizing:border-box}
+.checkout-fields{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:12px}.checkout-fields>div{min-width:0}
+.checkout-actions{display:flex;flex-wrap:wrap;gap:12px;align-items:center}#purchase-status{margin:2px 0;overflow-wrap:anywhere;font-size:13px;line-height:1.4}#purchase-status[data-error=true]{color:#a31939}
+#purchase-result{padding:8px 0}#purchase-open-map{max-width:100%;white-space:normal;text-align:center}
+.checkout-summary dl{margin:12px 0}.checkout-summary dl>div{display:flex;justify-content:space-between;gap:12px;margin:10px 0}.checkout-summary dd{margin:0;white-space:nowrap}.checkout-total{border-top:1px solid #e5d7ef;padding-top:12px;font-weight:800;font-size:20px}
+.checkout-summary p{overflow-wrap:anywhere}#orderForm .small{margin:0}
+@media(max-width:760px){.checkout-layout{grid-template-columns:minmax(0,1fr)}main{padding:14px}.checkout-fields{grid-template-columns:minmax(0,1fr) 76px}}

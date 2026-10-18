@@ -1,7 +1,8 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delivery location | MAX Byte</title><link rel="stylesheet" href="customer-pages.css?v=32"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"></head><body>
-<header class="site-header"><div><a class="brand" href="index.html">MAX Byte</a><nav aria-label="Main navigation"><a href="menu.html">Menu</a><a aria-current="page" href="delivery-location.html">Delivery location</a><a href="order.html">Checkout</a><a href="tracking.html">Track delivery</a><a href="coupon-wallet.html">My coupons</a></nav></div></header>
-<main><div class="page-intro"><div><h1>Where should we meet you?</h1><p>Choose your delivery point, check the route, then continue to checkout.</p></div><span class="badge">Delivery preview</span></div>
-<ol class="steps" aria-label="Order steps"><li>1 · Delivery location</li><li>2 · Choose food & checkout</li><li>3 · Track & play</li></ol>
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Delivery location | MAX Byte</title><link rel="stylesheet" href="customer-pages.css?v=34"><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><link rel="stylesheet" href="site-navigation.css?v=34">
+</head><body class="customer-delivery-page">
+<header class="maxx-site-header"><h1>MAXX Bytes</h1><nav aria-label="Main navigation"><ul><li><a href="index.html#home">Home</a></li><li><a href="login.html">Login</a></li><li><a href="coupon-wallet.html">My coupons</a></li><li><a href="menu.html#menu">Menu</a></li><li><a href="order.html#order">Order</a></li><li><a href="tracking.html">Track Delivery</a></li><li><a href="about.html#about">About MAXX Bytes</a></li><li><a href="contact.html#contact">Contact Us</a></li></ul></nav></header>
+<main><div class="page-intro"><div><h1>Where should we meet you?</h1><p>Choose your delivery point, check the route, then continue to checkout.</p></div><a class="badge" href="MapAPI.html">Delivery preview</a></div>
+<ol class="steps" aria-label="Order steps"><li><a data-flow-step="delivery-location.html" href="delivery-location.html">1 · Delivery location</a></li><li><a data-flow-step="order.html" href="order.html">2 · Choose food & checkout</a></li><li><a data-flow-step="tracking.html" href="tracking.html">3 · Track & play</a></li></ol>
 <p class="notice">You’re previewing a simulated delivery. Checkout availability is shown before you confirm an order.</p>
 <div class="layout"><section class="card map-card" aria-label="Delivery map"><div id="location-map" role="region" aria-label="Select and confirm your delivery location"></div><div class="map-key"><span>━ Blue · Outbound</span><span>┅ Orange · Return</span></div><p class="small">Tap the map to choose another delivery point. The route ends at the nearest eligible mapped path; the entrance still needs verification. Travel time excludes food preparation.</p></section>
 <section class="card" aria-label="Delivery details"><h2>Your delivery details</h2>
@@ -16,4 +17,5 @@
 <button id="save" disabled type="button">Save & continue to checkout</button>
 <details id="saved-details"><summary>My saved delivery locations</summary><button id="refresh-missions" class="secondary" type="button">Refresh locations</button><ul id="missions" class="saved-list"></ul></details>
 </section></div><p class="flow-footer">Route previews use the current campus map. Real robot access, building entrances and live tracking remain subject to validation.</p></main>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="delivery-location.js?v=32"></script></body></html>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="delivery-location.js?v=34"></script><script src="customer-navigation.js?v=34"></script>
+</body></html>

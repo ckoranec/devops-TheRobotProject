@@ -40,6 +40,14 @@ body.mb-mode-1 #mb-personality-options{display:none!important}
 #mb-reward-box{border:2px solid #15803d!important;background:#ecfdf5!important;color:#14532d!important;border-radius:8px;padding:4px 6px!important;box-sizing:border-box;grid-column:1/-1;font-size:11px}
 #mb-reward-box p{color:#14532d!important;margin:2px 0!important;font-size:11px!important;line-height:1.15!important}
 body:not(.mb-mode-3) #mb-reward-box{display:none!important}
+body:not(.mb-mode-3) #sc-message,body:not(.mb-mode-3) #snack-chase-panel > .mb-mission-note{display:none!important}
+.mb-game-invitation{border:2px solid #15803d;background:#ecfdf5;color:#14532d;border-radius:8px;padding:5px 7px;margin:5px 0;font-size:11px;line-height:1.2;display:flex;gap:6px;align-items:center;justify-content:space-between}
+.mb-game-invitation button{flex-shrink:0;background:#166534;color:white}
+.mb-game-invitation[hidden]{display:none!important}
+#mb-reward-box p{display:block!important}
+#mb-personality-options input[type=color]{flex:none}
+@media(max-width:500px){.mb-game-invitation{flex-wrap:wrap}}
+
 
 `;document.head.append(style);
 function redraw(){for(const map of Object.values(window.maxByteMaps||{})){
@@ -53,7 +61,7 @@ function redraw(){for(const map of Object.values(window.maxByteMaps||{})){
 }}
 function ready(){const options=document.getElementById('sc-custom-options');if(!options)return false;
   // Keep the existing color control available in both editable modes.
-  options.hidden=(window.maxByteMode||1)===1;
+  options.hidden=(window.maxByteMode||1)===1;options.style.setProperty('display',options.hidden?'none':'flex','important');
   if(!document.getElementById('mb-personality-options')){
     const row=document.createElement('div');row.id='mb-personality-options';
     row.innerHTML='<label>Robot hat <select aria-label="Robot hat"><option value="none">None</option><option value="chef">Chef</option><option value="crown">Crown</option><option value="party">Party</option><option value="cap">Cap</option></select></label><label>Map style <select aria-label="Map style"><option value="standard">Standard</option><option value="soft">Soft</option><option value="night">Night</option></select></label>';
@@ -79,14 +87,24 @@ function ready(){const options=document.getElementById('sc-custom-options');if(!
   if(arcade&&!document.getElementById('mb-reward-box')){
     const invite=Array.from(arcade.querySelectorAll('p')).find(p=>p.textContent.includes('PLAY THE SNACK'));
     if(invite){const box=document.createElement('section');box.id='mb-reward-box';
-      invite.prepend('💵 ');box.append(invite);
+      invite.style.removeProperty('display');invite.prepend('💵 ');box.append(invite);
       const message=document.getElementById('sc-message'),note=document.querySelector('#snack-chase-panel > .mb-mission-note');
       if(message)box.append(message);if(note)box.append(note);arcade.append(box);
     }
   }
-  const key=document.getElementById('mb-route-key');if(key)key.hidden=(window.maxByteMode||1)!==3;
-  redraw();return true;
+  const mode=window.maxByteMode||1;
+  const key=document.getElementById('mb-route-key');if(key){key.hidden=mode!==3;key.style.setProperty('display',mode===3?'block':'none','important');}
+  const common=document.getElementById('mb-common-telemetry');
+  if(common&&!document.getElementById('mb-game-invitation')){
+    const invite=document.createElement('aside');invite.id='mb-game-invitation';invite.className='mb-game-invitation';
+    const text=document.createElement('span');text.textContent='💵 Play Snack Chase: collect every food piece before delivery arrives to win 15% off your next order.';
+    const button=document.createElement('button');button.type='button';button.textContent='Go to Snack Chase';button.onclick=()=>window.maxByteApplyMode?.(3);invite.append(text,button);common.append(invite);
+  }
+  const promo=document.getElementById('mb-game-invitation');if(promo)promo.hidden=mode===3;
+  if(arcade){arcade.hidden=mode!==3;}
+  if(mode!==3){const box=document.getElementById('mb-reward-box');if(box)box.hidden=true;}else{const box=document.getElementById('mb-reward-box');if(box)box.hidden=false;}
+  redraw();return Boolean(document.getElementById('mb-common-telemetry')&&document.getElementById('mb-reward-box'));
 }
-for(const name of ['maxbyte:mode','maxbyte:mission','maxbyte:arena'])window.addEventListener(name,()=>{ready();});
+for(const name of ['maxbyte:mode','maxbyte:mission','maxbyte:arena','maxbyte:layers'])window.addEventListener(name,()=>{ready();});
 const timer=setInterval(()=>{if(ready())clearInterval(timer);},100);
 })();

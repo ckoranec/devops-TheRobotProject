@@ -4,8 +4,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 *{box-sizing:border-box}body{margin:0;background:#102238;color:#edf4ff;font:15px system-ui,sans-serif}header{padding:14px 4vw;display:flex;gap:16px;align-items:center;flex-wrap:wrap;background:#1c1831}header h1{font-size:20px;margin:0}a{color:#b4dcff}main{width:min(1400px,94vw);margin:18px auto}.notice{line-height:1.5;color:#cbd9ef}#workspace{display:grid;grid-template-columns:1fr 1fr;gap:14px;height:min(76vh,850px);min-height:570px}#map{height:100%;min-width:0;border-radius:16px;border:2px solid #ac7bff}aside{display:grid;grid-template-rows:1fr 1fr;gap:14px;min-height:0}.panel{background:#1a2942;border:1px solid #425573;border-radius:16px;padding:18px;overflow:auto;min-height:0}h2{font-size:18px;margin:0 0 12px}button{background:#a438f5;color:white;border:0;border-radius:8px;padding:10px 14px;font:inherit;cursor:pointer}button:disabled{opacity:.5;cursor:default}.buttons{display:flex;gap:8px;flex-wrap:wrap}.readout{white-space:pre-wrap;overflow-wrap:anywhere;background:#0e1c30;padding:10px;border-radius:8px;font-size:13px}#layers label{display:block;margin:9px 0}#message{line-height:1.5}input[type=number]{width:74px;padding:6px;font:inherit}input[type=checkbox]{margin-right:8px}.leaflet-container{color:#172238}@media(max-width:760px){#workspace{grid-template-columns:1fr;height:auto;min-height:0}#map{height:52vh;min-height:340px}aside{grid-template-rows:auto auto}.panel{max-height:420px}}
-</style></head><body>
-<header><h1>MAX Byte · Route Planning Workspace</h1><a href="MapAPI.html">Return to the three customer maps</a></header>
+</style><link rel="stylesheet" href="site-navigation.css?v=34">
+</head><body>
+<header class="maxx-site-header"><h1>MAXX Bytes</h1><nav aria-label="Main navigation"><ul><li><a href="index.html#home">Home</a></li><li><a href="login.html">Login</a></li><li><a href="coupon-wallet.html">My coupons</a></li><li><a href="menu.html#menu">Menu</a></li><li><a href="order.html#order">Order</a></li><li><a href="tracking.html">Track Delivery</a></li><li><a href="about.html#about">About MAXX Bytes</a></li><li><a href="contact.html#contact">Contact Us</a></li></ul></nav></header>
 <main><p class="notice">DEVELOPMENT PREVIEW · Routes use the existing downloaded graph. Full robot-access, barrier and restricted-polygon checks are still outstanding. No route here commands a real robot.</p>
 <div id="workspace"><div id="map" role="region" aria-label="Select delivery endpoints"></div>
 <aside><section class="panel"><h2>Horizon Hall delivery and return</h2><p>Horizon Hall, 4475 Aquia Creek Lane → 4504 Overcup Court → Horizon Hall. Coordinates are configured from your supplied route.</p><div class="buttons"><button id="pickup">1 · Choose pickup</button><button id="destination">2 · Choose destination</button><button id="clear">Clear</button><button id="export" disabled>Export route request</button></div>
@@ -20,4 +21,5 @@
 <p id="draft-status" role="status">No drafts. Export them before closing the page.</p></details><pre id="inspect" class="readout" tabindex="0" aria-label="Selected GIS feature">Click a line to inspect its source tags.</pre></section></aside></div></main>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="offline-routing.js?v=mission1"></script><script src="offline-route-planner.js?v=mission1"></script>
+<script src="customer-navigation.js?v=34"></script>
 </body></html>
