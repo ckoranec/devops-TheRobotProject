@@ -21,13 +21,13 @@
       status.innerHTML=`<p><strong>${state}</strong> · ${leg}</p><p>Delivery leg ${(route.outbound/1000).toFixed(2)} km · Round trip ${(route.total/1000).toFixed(2)} km</p><p>Delivery ETA ${arrived?'arrived':(snapshot.deliveryEtaSeconds/60).toFixed(1)+' min'} · Return ETA ${(snapshot.returnEtaSeconds/60).toFixed(1)} min</p><p>Progress ${(distance/route.total*100).toFixed(1)}% · ${speed} mph · Continuous animation</p>`;
     }
     function stop(){if(frame!==null)cancelAnimationFrame(frame);frame=null;last=null;}
-    function animate(now){if(state!=='En route')return;if(last===null)last=now;const dt=Math.min(.1,Math.max(0,(now-last)/1000));last=now;distance=Math.min(route.total,distance+speed*.44704*dt);robot.setLatLng(core.atDistance(route,distance));if(now-lastPublish>250){publish();lastPublish=now;}if(distance>=route.total){state='Returned';stop();publish();return;}frame=requestAnimationFrame(animate);}
+    function animate(now){if(state!=='En route')return;if(last===null)last=now;const dt=Math.max(0,(now-last)/1000);last=now;distance=Math.min(route.total,distance+speed*.44704*dt);robot.setLatLng(core.atDistance(route,distance));if(now-lastPublish>250){publish();lastPublish=now;}if(distance>=route.total){state='Returned';stop();publish();return;}frame=requestAnimationFrame(animate);}
     function start(){if(state==='En route')return;if(state==='Returned')reset();state='En route';last=null;frame=requestAnimationFrame(animate);publish();}
     function reset(){stop();distance=0;state='Ready';robot.setLatLng(route.line[0]);publish();window.dispatchEvent(new Event('maxbyte:reset'));}
     $('robot-start').onclick=start;$('robot-pause').onclick=()=>{if(state==='En route'){stop();state='Paused';publish();}};$('robot-reset').onclick=reset;
     $('robot-preview-speed').onchange=()=>{const value=Number($('robot-preview-speed').value);if(value>0&&value<=15){speed=value;publish();}};
-    $('robot-fit').onclick=()=>{const active=window.maxByteMaps?.[window.maxByteMode||1]||map;active.fitBounds(line.getBounds(),{padding:[48,48]});};
+    $('robot-fit').onclick=()=>{const active=window.maxByteMaps?.[window.maxByteMode||1]||map;active.fitBounds(window.maxByteCommonBounds?.()||line.getBounds(),{padding:[35,35]});};
     $('robot-center').onclick=()=>{const active=window.maxByteMaps?.[window.maxByteMode||1]||map;active.panTo(robot.getLatLng());};
-    window.maxByteMissionControl={start,reset,pause:()=>{if(state==='En route'){stop();state='Paused';publish();}},getState:()=>window.maxByteDeliveryState};window.maxByteRoutePlan={mission,route};publish();window.dispatchEvent(new CustomEvent('maxbyte:mission',{detail:window.maxByteRoutePlan}));map.fitBounds(line.getBounds(),{padding:[48,48]});
+    window.maxByteMissionControl={start,reset,pause:()=>{if(state==='En route'){stop();state='Paused';publish();}},getState:()=>window.maxByteDeliveryState};window.maxByteRoutePlan={mission,route};publish();window.dispatchEvent(new CustomEvent('maxbyte:mission',{detail:window.maxByteRoutePlan}));map.fitBounds(window.maxByteCommonBounds?.()||line.getBounds(),{padding:[35,35]});
   }catch(error){status.textContent='Mission unavailable: '+error.message;console.error(error);}
 })();

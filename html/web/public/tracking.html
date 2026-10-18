@@ -491,8 +491,10 @@ body main .dashboard-container #robot-control-panel {
 <!-- MAX_BYTE_REQUIRED_MISSION_V1: local Dijkstra geometry and shared maps. -->
 <script src="mission-core.js?v=1"></script>
 <link rel="stylesheet" href="mission-ui.css?v=1">
-<script src="map-presentation.js?v=20"></script>
-<script src="natural-game-core.js?v=20"></script>
+
+
+<style id="mb-natural-glow-style">.mb-natural-glow{filter:drop-shadow(0 0 4px #e000ff)}#mb-common-telemetry #robot-simulation-status p{font-size:12px!important;line-height:1.25!important;margin:2px 0!important}#mb-common-telemetry #robot-simulation-status{display:block!important}#mb-route-key{font-size:12px!important;margin:0!important}</style><script src="map-presentation.js?v=22"></script>
+<script src="natural-game-core.js?v=22"></script>
 </head>
 <body>
     <header>
@@ -589,13 +591,13 @@ body main .dashboard-container #robot-control-panel {
 
 
 <!-- MAX Byte robot simulation: 10-second GPS updates. -->
-<script src="robot-simulation.js?v=20"></script>
-<script src="snack-chase.js?v=20"></script>
+<script src="robot-simulation.js?v=22"></script>
+<script src="snack-chase.js?v=24"></script>
 <link rel="stylesheet" href="max-byte-layout-repair.css?v=11">
 <script src="max-byte-layout-repair.js?v=9"></script>
 
 <!-- Arrange all three maps after their controls and layers exist. -->
-<script src="shared-map-layout.js?v=20"></script>
+<script src="shared-map-layout.js?v=25"></script>
 <!-- Shared robot artwork and outbound/return route legend. -->
 </body>
 </html>
