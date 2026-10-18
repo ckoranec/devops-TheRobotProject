@@ -12,7 +12,7 @@ root=Path(__file__).resolve().parent
 app=create_app({'SECRET_KEY':secret,'SQLALCHEMY_DATABASE_URI':uri,
                 'CUSTOMER_MAP_SOURCE':str(root/'gmu_map_16OCT26.json'),
                 'SNACK_NETWORK_SOURCE':str(root/'html/web/public/data/mission-network.json'),
-                'ALLOW_DEMO_CHECKOUT':False,
+                'ALLOW_DEMO_CHECKOUT':True,'DEMONSTRATION_SITE':True,
                 'SESSION_COOKIE_SECURE':os.environ.get('MAX_BYTE_HTTPS_ONLY')=='1'})
 # The API binds loopback only; Nginx supplies exactly one trusted proxy hop.
 app.wsgi_app=ProxyFix(app.wsgi_app,x_for=1,x_proto=1,x_host=0,x_port=0)
@@ -24,4 +24,4 @@ def private_api_response(response):
 @app.get('/api/release')
 def release_info():
     from flask import jsonify
-    return jsonify(commit=root.name,simulated=True,payments_enabled=False)
+    return jsonify(commit=root.name,simulated=True,payments_enabled=False,demonstration_site=True)

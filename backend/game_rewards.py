@@ -144,9 +144,16 @@ def start_run(mission_id):
     mission=json.loads(owned(mission_id).payload)
     purchase=eligible_purchase(mission_id,current_user.id)
     run=SnackRun.query.filter_by(mission_id=mission_id).first()
-    if run:return jsonify(snapshot(run,json.loads(run.state)))
+    if run:
+        saved=json.loads(run.state)
+        if saved['status']=='running':
+            saved['started']=purchase.created_at;saved['deadline']=purchase.created_at+mission['metadata']['outbound_m']/(15*.44704)
+            if now()>=saved['deadline']:saved['status']='lost'
+            run.state=json.dumps(saved);db.session.commit()
+        return jsonify(snapshot(run,saved))
     graph=arena(mission);timestamp=now()
-    state={'status':'running','started':timestamp,'last':timestamp,'deadline':timestamp+mission['metadata']['outbound_m']/(15*.44704),'graph':graph,'player':entity(graph['start']),
+    deadline=purchase.created_at+mission['metadata']['outbound_m']/(15*.44704)
+    state={'status':'lost' if timestamp>=deadline else 'running','started':purchase.created_at,'last':timestamp,'deadline':deadline,'graph':graph,'player':entity(graph['start']),
            'foods':[dict(entity(i),id=n,speed=1.4+n*.1) for n,i in enumerate(graph['foodStarts'])], 'tap_seq':0,'tap_time':0,'tap_dir':None,'boost':0}
     run=SnackRun(id=str(uuid.uuid4()),mission_id=mission_id,owner_id=current_user.id,state=json.dumps(state))
     try:db.session.add(run);db.session.commit()
@@ -166,6 +173,9 @@ def step_run(run_id):
     if (direction is not None and (not isinstance(direction,str) or direction not in {'up','down','left','right'})) or type(seq) is not int or not 0<=seq<=2147483647:fail('invalid_input','Invalid game controls.')
     state=json.loads(run.state);timestamp=now()
     if state['status']=='running':
+        purchase=eligible_purchase(run.mission_id,current_user.id)
+        mission=json.loads(owned(run.mission_id).payload)
+        state['started']=purchase.created_at;state['deadline']=purchase.created_at+mission['metadata']['outbound_m']/(15*.44704)
         # Wall-clock delivery deadline never pauses or resets with the browser.
         if timestamp>=state['deadline']:state['status']='lost'
         else:

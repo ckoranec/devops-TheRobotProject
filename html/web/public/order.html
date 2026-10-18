@@ -13,4 +13,10 @@
 <p class="small"><a href="login.html?next=order.html">Sign in / create account</a> · <a href="delivery-location.html">Save a delivery location</a></p>
 </form></section>
 <aside class="card checkout-summary" aria-label="Order summary"><h2>Order summary</h2><p id="summaryMeal">Choose a meal.</p><dl><div><dt>Food</dt><dd id="summarySubtotal">$0.00</dd></div><div><dt>Coupon savings</dt><dd id="summaryDiscount">$0.00</dd></div><div><dt>Delivery</dt><dd id="summaryDelivery">$0.00</dd></div><div class="checkout-total"><dt>Total</dt><dd id="summaryTotal">$0.00</dd></div></dl><p id="checkout-mode" class="notice">Checking order mode…</p><p class="small">One qualifying purchase gives one Snack Chase attempt. Collect every food piece before arrival to earn 15% off your next purchase.</p></aside></div></main>
-<script src="customer-navigation.js?v=34"></script><script src="purchase-checkout.js?v=34"></script></body></html>
+<dialog id="demo-payment-dialog" aria-labelledby="demo-payment-title" style="max-width:440px;width:calc(100% - 32px);padding:22px;border:2px solid #6b21a8;border-radius:16px;color:#251538">
+<h2 id="demo-payment-title">Simulated payment</h2><p>Use the demonstration wallet to confirm this order. No real payment details are needed.</p>
+<p><strong>Demo order total: <span id="demo-payment-total"></span></strong></p><p>Actual amount charged: <strong>$0.00</strong></p>
+<p id="demo-payment-status" role="status" aria-live="polite">Review your order, then confirm the simulated payment.</p>
+<div class="inline"><button id="demo-payment-confirm" type="button">Confirm simulated payment</button><button id="demo-payment-cancel" class="secondary" type="button">Back to order</button></div>
+</dialog>
+<script src="customer-navigation.js?v=34"></script><script src="purchase-checkout.js?v=35"></script></body></html>
