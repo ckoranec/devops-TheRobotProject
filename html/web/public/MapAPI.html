@@ -495,6 +495,9 @@ body main .dashboard-container #robot-control-panel {
 
 <style id="mb-natural-glow-style">.mb-natural-glow{filter:drop-shadow(0 0 4px #e000ff)}#mb-common-telemetry #robot-simulation-status p{font-size:12px!important;line-height:1.25!important;margin:2px 0!important}#mb-common-telemetry #robot-simulation-status{display:block!important}#mb-route-key{font-size:12px!important;margin:0!important}</style><script src="map-presentation.js?v=22"></script>
 <script src="natural-game-core.js?v=22"></script>
+<!-- V26: every fresh or restored page opens on Classic. -->
+<script id="mb-classic-startup">try{localStorage.setItem('max-byte-mode','1');}catch(e){}window.addEventListener('pageshow',()=>window.maxByteApplyMode?.(1));</script>
+<script src="customer-game-arena.js?v=26"></script>
 </head>
 <body>
     <header>
@@ -592,7 +595,7 @@ body main .dashboard-container #robot-control-panel {
 
 <!-- MAX Byte robot simulation: 10-second GPS updates. -->
 <script src="robot-simulation.js?v=22"></script>
-<script src="snack-chase.js?v=24"></script>
+<script src="snack-chase.js?v=26"></script>
 <link rel="stylesheet" href="max-byte-layout-repair.css?v=11">
 <script src="max-byte-layout-repair.js?v=9"></script>
 
