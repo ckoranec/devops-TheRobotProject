@@ -19,34 +19,28 @@ set(snack.querySelector('.sc-pad'),{display:'flex','justify-content':'flex-start
 
 const arcade=$('mb-arcade-controls');set(arcade.querySelector('p'),{display:'none'});set(arcade.querySelector('.sc-stats'),{'grid-column':'1 / -1','grid-row':'1','font-size':'12px'});set(arcade.querySelector('.mb-mission-buttons'),{'grid-column':'1','grid-row':'2',display:'flex','flex-wrap':'wrap',gap:'3px'});set(arcade.querySelector('.sc-pad'),{'grid-column':'2','grid-row':'2'});set(arcade.querySelector('p:last-child'),{'grid-column':'1 / -1','grid-row':'3','font-size':'11px'});
 function layout(){cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const mode=window.maxByteMode||1,narrow=innerWidth<900;set(shell,{'grid-template-columns':narrow?'minmax(0,1fr)':'minmax(0,1fr) minmax(0,1fr)'});set(right,{'grid-column':narrow?'1':'2','grid-row':narrow?'3':'2'});maps.forEach((m,i)=>set(m,{display:i+1===mode?'block':'none'}));set(snack,{display:mode===1?'none':'block'});set(arcade,{display:mode===3?'grid':'none','grid-template-columns':'minmax(0,1fr) auto',gap:'2px 6px','align-items':'center'});const title=card.querySelector('h3');if(title)title.textContent='Horizon Hall delivery and return';
-// Measure content before sizing. Normal desktop fits below the compact header.
-
-// V25: exclude stretched grid space from the content measurement.
-set(right,{
-    height:'auto',
-    'align-self':'start',
-    'grid-template-rows':'max-content max-content'
-});
-set(stack,{height:'auto','align-self':'start'});
-set(layers,{height:'auto','align-self':'start'});
-
-// Keep layer labels and the file control compact.
-layers.querySelectorAll('label,label span,p,small,summary').forEach(
-    e=>set(e,{
-        'font-size':'11px',
-        'line-height':'1.2',
-        margin:'3px 0'
-    })
-);
-set(layers.querySelector('[data-import]'),{
-    'font-size':'11px',
-    'min-height':'0',
-    height:'30px',
-    padding:'2px',
-    'max-width':'100%',
-    'box-sizing':'border-box'
-});
-const natural=Math.max(stack.scrollHeight,layers.scrollHeight),available=Math.floor(innerHeight-left.getBoundingClientRect().top-32);const fits=!narrow&&available>=500&&natural<=available/2;const total=fits?available:Math.max(560,2*natural+12);set(left,{height:(narrow?520:total)+'px'});set(right,{height:total+'px','grid-template-rows':'minmax(0,1fr) minmax(0,1fr)'});set(stack,{height:'100%','align-self':'stretch'});set(layers,{height:'100%','align-self':'stretch'});const map=window.maxByteMaps?.[mode];if(map){map.invalidateSize({pan:false});if(window.maxByteCommonBounds)map.fitBounds(window.maxByteCommonBounds(),{padding:[35,35],animate:false});}
+// V30: a single viewport frame for all modes; no game-driven enlargement.
+set(common,{display:'block',height:'auto','min-height':'0','max-height':'none',padding:'0',margin:'0'});
+set(snack,{'min-height':'0',height:'auto',padding:'0',margin:'0'});
+set(status,{height:'auto','min-height':'0',padding:'0',margin:'2px 0'});
+set(stack,{display:'block','min-height':'0',height:'auto',padding:'8px','box-sizing':'border-box'});
+set(layers,{'min-height':'0',height:'auto',padding:'8px','box-sizing':'border-box'});
+for(const el of stack.querySelectorAll('p,label'))set(el,{margin:'2px 0','font-size':'11px','line-height':'1.15'});
+for(const el of stack.querySelectorAll('button,select'))set(el,{'min-height':'26px',padding:'2px 5px',margin:'0','font-size':'11px'});
+set($('sc-custom-options'),{display:'flex','flex-wrap':'wrap',gap:'2px 8px','align-items':'center',margin:'2px 0'});
+// Keep the mode header the same height; route colors remain visible on the map.
+set($('mb-route-key'),{display:'none'});
+set(right,{height:'auto','align-self':'start','grid-template-rows':'max-content max-content'});
+// Measure children outside fixed-height parents, then preserve equal side panels.
+const natural=Math.ceil(Math.max(stack.scrollHeight,layers.scrollHeight));
+const available=Math.floor(innerHeight-left.getBoundingClientRect().top-24);
+const fits=!narrow&&available>=500&&natural<=available/2;
+// Short/mobile windows use normal document scrolling, never hidden controls.
+const total=fits?available:Math.max(560,2*natural+16);
+set(left,{height:(narrow?520:total)+'px'});
+set(right,{height:total+'px','grid-template-rows':'minmax(0,1fr) minmax(0,1fr)'});
+set(stack,{height:'100%','align-self':'stretch'});set(layers,{height:'100%','align-self':'stretch'});
+const map=window.maxByteMaps?.[mode];if(map){map.invalidateSize({pan:false});if(window.maxByteCommonBounds)map.fitBounds(window.maxByteCommonBounds(),{padding:[35,35],animate:false});}
 });}
 for(const event of ['resize','maxbyte:mode','maxbyte:mission','maxbyte:layers','maxbyte:arena'])window.addEventListener(event,layout);layers.addEventListener('toggle',layout,true);window.maxByteLayoutRefresh=layout;layout();
 },80);

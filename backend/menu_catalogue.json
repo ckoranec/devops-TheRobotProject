@@ -1,0 +1,94 @@
+{
+  "campus-classic": {
+    "name": "Campus Classic",
+    "price_cents": 699
+  },
+  "veggie-dorm-delight": {
+    "name": "Veggie Dorm Delight",
+    "price_cents": 599
+  },
+  "bacon-beast": {
+    "name": "Bacon Beast",
+    "price_cents": 749
+  },
+  "spicy-inferno": {
+    "name": "Spicy Inferno",
+    "price_cents": 699
+  },
+  "california-roll": {
+    "name": "California Roll",
+    "price_cents": 850
+  },
+  "tempura-shrimp-roll": {
+    "name": "Tempura Shrimp Roll",
+    "price_cents": 925
+  },
+  "avocado-delight-roll": {
+    "name": "Avocado Delight Roll",
+    "price_cents": 750
+  },
+  "dragon-roll": {
+    "name": "Dragon Roll",
+    "price_cents": 1099
+  },
+  "greek-salad": {
+    "name": "Greek Salad",
+    "price_cents": 625
+  },
+  "protein-power-bowl": {
+    "name": "Protein Power Bowl",
+    "price_cents": 899
+  },
+  "caesar-salad": {
+    "name": "Caesar Salad",
+    "price_cents": 599
+  },
+  "loaded-fries": {
+    "name": "Loaded Fries",
+    "price_cents": 499
+  },
+  "mac-cheese-bites": {
+    "name": "Mac & Cheese Bites",
+    "price_cents": 399
+  },
+  "mozzarella-sticks": {
+    "name": "Mozzarella Sticks",
+    "price_cents": 450
+  },
+  "fruit-cup": {
+    "name": "Fruit Cup",
+    "price_cents": 299
+  },
+  "campus-cold-brew": {
+    "name": "Campus Cold Brew",
+    "price_cents": 275
+  },
+  "fresh-lemonade": {
+    "name": "Fresh Lemonade",
+    "price_cents": 250
+  },
+  "iced-green-tea": {
+    "name": "Iced Green Tea",
+    "price_cents": 225
+  },
+  "bottled-water": {
+    "name": "Bottled Water",
+    "price_cents": 150
+  },
+  "chocolate-chip-cookie": {
+    "name": "Chocolate Chip Cookie",
+    "price_cents": 199
+  },
+  "fudge-brownie": {
+    "name": "Fudge Brownie",
+    "price_cents": 225
+  },
+  "ice-cream-cup": {
+    "name": "Ice Cream Cup",
+    "price_cents": 299
+  },
+  "mini-cheesecake": {
+    "name": "Mini Cheesecake",
+    "price_cents": 350
+  }
+}

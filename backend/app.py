@@ -80,6 +80,13 @@ def create_app(test_config=None):
 
     db.init_app(app)
 
+    # CUSTOMER_ROUTING_PHASE1: register mission models before db.create_all.
+    from backend.customer_routes import register_customer_routes
+    register_customer_routes(app, limiter)
+    # V30: authoritative game and account coupon wallet; before table creation.
+    from backend.game_rewards import register_game_rewards
+    register_game_rewards(app, limiter)
+
     with app.app_context():
         db.create_all()
 

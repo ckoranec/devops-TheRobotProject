@@ -7,6 +7,14 @@ window.maxByteBuildLayers=async function(map,_oldDemoData){
   host.before(panel);
   try{
     const response=await fetch('data/mission-network.json',{cache:'no-store'});if(!response.ok)throw Error('GIS HTTP '+response.status);const network=await response.json();
+    // V30: configured delivery stops belong to this customer's selected mission.
+    for(let i=0;!window.maxByteRoutePlan&&i<100;i++)await new Promise(r=>setTimeout(r,100));
+    if(window.maxByteRoutePlan){
+      const m=window.maxByteRoutePlan.mission;
+      network.features=network.features.filter(f=>f.properties.layer!=='delivery_points');
+      for(const leg of m.features){const point=leg.geometry.coordinates[0];network.features.push({type:'Feature',properties:{layer:'delivery_points',name:leg.properties.leg==='outbound'?m.metadata?.pickup_name:m.metadata?.destination_name},geometry:{type:'Point',coordinates:point}});}
+    }
+
     let attempts=0;while(!window.maxByteMaps&&attempts++<100)await new Promise(r=>setTimeout(r,50));
     if(!window.maxByteMaps)throw Error('Three map instances unavailable');
     const colors={paths:'#22c55e',roads:'#94a3b8',restrictions:'#ef4444',closures:'#f472b6',buildings:'#a78bfa',entrances:'#38bdf8',delivery_points:'#facc15',junctions:'#fb923c',manual_drafts:'#e879f9'};
