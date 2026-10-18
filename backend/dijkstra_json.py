@@ -8,8 +8,17 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass, field
 
 
-ALLOWED = {"footway", "path", "steps", "pedestrian"} #Walk tags that match red dotted lines on map
+ALLOWED = {"footway", "path", "pedestrian"} #Walk tags that match red dotted lines on map
 
+
+
+# MAX_BYTE_JSON_ROUTING_REPAIR_V1
+def haversine(lat1, lon1, lat2, lon2):
+    """Great-circle segment length in meters, not degrees or miles."""
+    a, b = math.radians(lat1), math.radians(lat2)
+    dlat, dlon = b - a, math.radians(lon2 - lon1)
+    h = math.sin(dlat / 2)**2 + math.cos(a)*math.cos(b)*math.sin(dlon / 2)**2
+    return 6371000 * 2 * math.asin(math.sqrt(max(0.0, min(1.0, h))))
 
 @dataclass
 class Edge: #Line between nodes
@@ -22,10 +31,8 @@ class Edge: #Line between nodes
 
 @dataclass
 class Graph: #Full graph of nodes and edges
-    nodes: dict[str, tuple[float, float]] #Dictionary mapping OSM IDs (str) to coordinate positions (tuple)
-        = field(default_factory = dict) #Each Graph object gets its own dictionary
-    adj: dict[str, list[Edge]] #Adjacency dictionary mapping OSM IDs to list of edges connecting to it (list)
-        = field(default_factory = dict)
+    nodes: dict[str, tuple[float, float]] = field(default_factory=dict)
+    adj: dict[str, list[Edge]] = field(default_factory=dict)
 
     def add_node(self, node_id: str, lat: float, lon: float): #Record position and check for adj
         self.nodes[node_id] = (lat, lon) #Set current latitude/longitude position to current OSM ID
@@ -45,14 +52,37 @@ def load_walk_graph(osm_path: str):
     with open(osm_path, encoding="utf-8") as fh:
         data = json.load(fh)
 
+    # Overpass may store coordinates inline instead of separate nodes.
+    for way in data["elements"]:
+        if way.get("type") != "way" or "geometry" not in way:
+            continue
+        refs, points = way.get("nodes", []), way["geometry"]
+        if len(refs) != len(points):
+            raise ValueError("Way node/geometry length mismatch")
+        for ref, point in zip(refs, points):
+            lat, lon = point["lat"], point["lon"]
+            if (isinstance(lat, bool) or isinstance(lon, bool) or
+                not math.isfinite(lat) or not math.isfinite(lon) or
+                not -90 <= lat <= 90 or not -180 <= lon <= 180):
+                raise ValueError("Invalid GIS coordinates")
+            coords[str(ref)] = (lat, lon)
+
     for elem in data["elements"]:
         if elem["type"] == "node":
             coords[str(elem["id"])] = (elem["lat"], elem["lon"])
         elif elem["type"] == "way":
             tags = elem.get("tags", {})
             highway = tags.get("highway")
-            if highway in ALLOWED:
+            if (highway in ALLOWED
+                and tags.get("access") not in {"no", "private"}
+                and tags.get("foot") not in {"no", "private"}
+                and tags.get("closed") != "yes"
+                and not tags.get("construction")):
                 refs = [str(n) for n in elem["nodes"]]
+                if len(refs) < 2:
+                    continue
+                if any(ref not in coords for ref in refs):
+                    raise ValueError("Way references missing coordinates")
                 ways.append((str(elem["id"]), highway, refs))
 
     membership: dict[str, int] = {}

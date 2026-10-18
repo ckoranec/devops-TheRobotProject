@@ -58,3 +58,157 @@ body main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-camp
 body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-customize-map,
 body main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-game-map{
 height:340px!important;min-height:340px!important;max-height:340px!important}}
+
+/* MAX_BYTE_COMPACT_WORKSPACE_V1
+   Map 1: tabs, compact robot toolbar, then layers beside map. */
+
+/* Reduce decorative header space while retaining navigation. */
+body.mb-mode-1 > header {
+    padding: 10px 16px !important;
+}
+body.mb-mode-1 > header h1 {
+    font-size: 26px !important;
+    margin: 0 0 8px !important;
+}
+body.mb-mode-1 > header nav,
+body.mb-mode-1 > header nav ul {
+    margin: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+}
+
+/* Override the existing two-column outer layout. */
+body.mb-mode-1 main .dashboard-container.mb-final-layout {
+    width: calc(100% - 16px) !important;
+    max-width: none !important;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto auto auto !important;
+    gap: 10px !important;
+    margin: 0 auto !important;
+}
+
+/* Experience tabs remain first. */
+body.mb-mode-1 main .dashboard-container.mb-final-layout #max-byte-modes {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+    padding: 8px 12px !important;
+}
+body.mb-mode-1 #max-byte-modes > p {
+    margin: 4px 0 0 !important;
+}
+body.mb-mode-1 #max-byte-modes button {
+    padding: 8px 12px !important;
+    min-height: 38px !important;
+}
+
+/* Move the existing controls above the map; preserve event handlers. */
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-controls {
+    grid-column: 1 !important;
+    grid-row: 2 !important;
+    width: 100% !important;
+}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-controls #robot-control-panel {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 6px 14px !important;
+    padding: 10px 14px !important;
+    margin: 0 !important;
+}
+body.mb-mode-1 #robot-control-panel h3 {
+    font-size: 17px !important;
+    margin: 0 !important;
+}
+body.mb-mode-1 #robot-control-panel p,
+body.mb-mode-1 #robot-control-panel label {
+    margin: 2px 0 !important;
+    font-size: 13px !important;
+}
+body.mb-mode-1 #robot-control-panel button {
+    min-width: 64px !important;
+    min-height: 36px !important;
+    padding: 6px 12px !important;
+    margin: 2px !important;
+    font-size: 14px !important;
+}
+body.mb-mode-1 #robot-control-panel select {
+    width: 260px !important;
+    max-width: 100% !important;
+    min-height: 36px !important;
+    font-size: 14px !important;
+}
+body.mb-mode-1 #robot-simulation-status {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 4px 16px !important;
+    margin: 0 !important;
+}
+
+/* Full-width map workspace below the toolbar. */
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    padding: 10px !important;
+}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column .data-card {
+    display: grid !important;
+    grid-template-columns: 250px minmax(0, 1fr) !important;
+    gap: 8px 12px !important;
+}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column .data-card > h3,
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column .data-card > p {
+    grid-column: 1 / -1 !important;
+    margin: 0 !important;
+}
+
+/* Equal-height sidebar and map; details scroll inside the sidebar. */
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-gis-controls {
+    grid-column: 1 !important;
+    grid-row: 3 !important;
+    height: clamp(300px, 43vh, 520px) !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    overflow: auto !important;
+    box-sizing: border-box !important;
+}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map {
+    grid-column: 2 !important;
+    grid-row: 3 !important;
+    height: clamp(300px, 43vh, 520px) !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-map-status {
+    grid-column: 1 / -1 !important;
+    grid-row: 4 !important;
+}
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-gis-controls h3,
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-gis-controls p,
+body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-gis-controls pre {
+    color: #f1f5f9 !important;
+}
+
+/* Smaller screens retain readable controls and allow vertical scrolling. */
+@media (max-width: 760px) {
+    body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column .data-card {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+    body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #mb-gis-controls {
+        grid-column: 1 !important;
+        grid-row: 3 !important;
+        height: 150px !important;
+    }
+    body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-campus-map {
+        grid-column: 1 !important;
+        grid-row: 4 !important;
+        height: 45vh !important;
+        min-height: 280px !important;
+    }
+    body.mb-mode-1 main .dashboard-container.mb-final-layout #mb-repaired-map-column #gmu-map-status {
+        grid-row: 5 !important;
+    }
+}

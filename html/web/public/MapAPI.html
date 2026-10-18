@@ -486,6 +486,13 @@ body main .dashboard-container #robot-control-panel {
 </style>
 
 <link rel="stylesheet" href="snack-chase.css?v=4">
+<script src="map-layers.js?v=mission1"></script>
+
+<!-- MAX_BYTE_REQUIRED_MISSION_V1: local Dijkstra geometry and shared maps. -->
+<script src="mission-core.js?v=1"></script>
+<link rel="stylesheet" href="mission-ui.css?v=1">
+<script src="map-presentation.js?v=20"></script>
+<script src="natural-game-core.js?v=20"></script>
 </head>
 <body>
     <header>
@@ -540,6 +547,8 @@ body main .dashboard-container #robot-control-panel {
             return response.json();
         })
         .then(data => {
+            window.maxByteBuildLayers(campusMap, data);
+            return;
             const lines = [];
 
             for (const element of data.elements || []) {
@@ -577,12 +586,16 @@ body main .dashboard-container #robot-control-panel {
             console.error("GMU GIS loading error:", error);
         });
     </script>
-    
+
 
 <!-- MAX Byte robot simulation: 10-second GPS updates. -->
-<script src="robot-simulation.js?v=11"></script>
-<script src="snack-chase.js?v=11"></script>
+<script src="robot-simulation.js?v=20"></script>
+<script src="snack-chase.js?v=20"></script>
 <link rel="stylesheet" href="max-byte-layout-repair.css?v=11">
 <script src="max-byte-layout-repair.js?v=9"></script>
+
+<!-- Arrange all three maps after their controls and layers exist. -->
+<script src="shared-map-layout.js?v=20"></script>
+<!-- Shared robot artwork and outbound/return route legend. -->
 </body>
 </html>

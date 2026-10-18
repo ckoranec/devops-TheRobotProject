@@ -1,0 +1,9 @@
+/* Shared, unit-testable route geometry and arcade helpers. */
+(function(root){'use strict';
+  function meters(a,b){const r=x=>x*Math.PI/180,h=Math.sin(r(b[0]-a[0])/2)**2+Math.cos(r(a[0]))*Math.cos(r(b[0]))*Math.sin(r(b[1]-a[1])/2)**2;return 12742000*Math.asin(Math.sqrt(Math.min(1,Math.max(0,h))));}
+  function prepare(features){let line=[],outbound=0,total=0;const cumulative=[0];for(const f of features){const pts=f.geometry.coordinates.map(p=>[p[1],p[0]]);for(const p of pts){if(line.length&&meters(line.at(-1),p)<.001)continue;if(line.length){total+=meters(line.at(-1),p);cumulative.push(total);}line.push(p);}if(f.properties.leg==='outbound')outbound=total;}if(line.length<2||!outbound)throw Error('Invalid out-and-return mission');return {line,cumulative,total,outbound};}
+  function atDistance(route,distance){if(distance<=0)return route.line[0];if(distance>=route.total)return route.line.at(-1);let lo=1,hi=route.cumulative.length-1;while(lo<hi){const m=(lo+hi)>>1;if(route.cumulative[m]<distance)lo=m+1;else hi=m;}const a=route.line[lo-1],b=route.line[lo],span=route.cumulative[lo]-route.cumulative[lo-1],t=span?(distance-route.cumulative[lo-1])/span:0;return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];}
+  function sweptDistance(a0,a1,b0,b1){const x=a0[0]-b0[0],y=a0[1]-b0[1],vx=(a1[0]-a0[0])-(b1[0]-b0[0]),vy=(a1[1]-a0[1])-(b1[1]-b0[1]),den=vx*vx+vy*vy,t=den?Math.max(0,Math.min(1,-(x*vx+y*vy)/den)):0;return Math.hypot(x+t*vx,y+t*vy);}
+  function grid(columns=9,rows=7){const nodes=[];for(let y=0;y<rows;y++)for(let x=0;x<columns;x++)nodes.push({x,y,links:[]});for(let i=0;i<nodes.length;i++){const n=nodes[i];for(const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1]]){const x=n.x+dx,y=n.y+dy;if(x>=0&&x<columns&&y>=0&&y<rows)n.links.push(y*columns+x);}}return nodes;}
+  const api={meters,prepare,atDistance,sweptDistance,grid};root.MaxByteMissionCore=api;if(typeof module!=='undefined'&&module.exports)module.exports=api;
+})(typeof window==='undefined'?globalThis:window);
