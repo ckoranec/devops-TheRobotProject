@@ -1,7 +1,7 @@
 import json
 import sys
 
-LAYER_NAMES = ["node", "way"]
+LAYER_NAMES = ["way"]
 WAY_TYPE_KEY = "highway"           # tag used to tell ways apart
 NO_TYPE_LABEL = "(no highway tag)"
 
@@ -18,8 +18,8 @@ def load_data(path):
  
     if not isinstance(data, dict) or not isinstance(data.get("elements"), list):
         sys.exit("ERROR: no 'elements' list found. Is this Overpass JSON?")
-    
-    #check if timeout/ memory caused a incomplete file 
+ 
+    # check if timeout / memory caused an incomplete file
     if data.get("remark"):
         print("WARNING: Overpass remark:", data["remark"])
  
@@ -30,18 +30,26 @@ def find_problem(el):
     if not isinstance(el, dict):
         return "element is not an object"
     if el.get("type") not in LAYER_NAMES:
+        # a 'node' or 'relation' here means the query/output format changed
         return f"unexpected type: {el.get('type')!r}"
     if not isinstance(el.get("id"), int):
         return "missing or invalid id"
  
-    if el["type"] == "node":
-        lat, lon = el.get("lat"), el.get("lon")
-        if not isinstance(lat, (int, float)) or not isinstance(lon, (int, float)):
-            return "node missing lat/lon"
-    else:  # way
-        refs = el.get("nodes")
-        if not isinstance(refs, list) or len(refs) < 2:
-            return "way has fewer than 2 node ids"
+    # way checks
+    refs = el.get("nodes")
+    if not isinstance(refs, list) or len(refs) < 2:
+        return "way has fewer than 2 node ids"
+ 
+    geom = el.get("geometry")
+    if not isinstance(geom, list) or not geom:
+        return "way has no coordinates"
+    if len(geom) != len(refs):
+        return "way geometry does not match its node ids"
+    for pt in geom:
+        if (not isinstance(pt, dict)
+                or not isinstance(pt.get("lat"), (int, float))
+                or not isinstance(pt.get("lon"), (int, float))):
+            return "way geometry point missing lat/lon"
     return None
 
 # seperate and split layers into type (way, node)
@@ -82,7 +90,6 @@ def report(layers, way_types, broken, total):
     print(f"  broken {len(broken)}")
  
     print(f"\nWay sub-types (by '{WAY_TYPE_KEY}' tag): {len(way_types)} types")
-    # biggest first
     for sub_type, ways in sorted(way_types.items(), key=lambda kv: -len(kv[1])):
         print(f"  {sub_type:<20} {len(ways)}")
     if NO_TYPE_LABEL in way_types:
@@ -99,7 +106,7 @@ def report(layers, way_types, broken, total):
 
 def main():
     if len(sys.argv) != 2:
-        sys.exit("usage: python prepare_data.py <file.json>")
+        sys.exit("usage: python splitLayer.py <file.json>")
  
     elements = load_data(sys.argv[1])
     layers, broken = split_into_layers(elements)
@@ -112,3 +119,5 @@ def main():
  
 if __name__ == "__main__":
     main()
+
+
