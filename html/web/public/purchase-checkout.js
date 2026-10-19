@@ -3,6 +3,9 @@
 (async()=>{'use strict';const $=id=>document.getElementById(id),form=$('orderForm');if(!form)return;
 const params=new URLSearchParams(location.search),dialog=$('demo-payment-dialog');let csrf='',busy=false,completed=false,demo=false,intent=null;
 function newKey(){const b=new Uint8Array(16);crypto.getRandomValues(b);b[6]=(b[6]&15)|64;b[8]=(b[8]&63)|128;const h=Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');return `${h.slice(0,8)}-${h.slice(8,12)}-${h.slice(12,16)}-${h.slice(16,20)}-${h.slice(20)}`;}
+/* V37: retain a featured meal through sign-in and location selection. */
+let featuredSku=params.get('sku')||'';
+try{if(featuredSku)sessionStorage.setItem('maxx-featured-sku',featuredSku);else featuredSku=sessionStorage.getItem('maxx-featured-sku')||'';}catch(_){}
 let key=newKey();function money(n){return '$'+(n/100).toFixed(2);}function message(text,error=false){$('purchase-status').textContent=text;$('purchase-status').dataset.error=String(error);}
 const fields=['purchase-mission','food','purchase-quantity','purchase-coupon'];function lock(value){for(const id of fields)$(id).disabled=value;$('purchase-quote').disabled=value;}
 async function api(path,options={}){const r=await fetch('/api/customer/'+path,{credentials:'same-origin',cache:'no-store',...options,headers:{'Content-Type':'application/json','X-CSRF-Token':csrf,...options.headers}});let d;try{d=await r.json();}catch(_){throw Error('The demonstration API is unavailable. Please try again shortly.');}if(!r.ok)throw Error(d.error||'Your order could not be completed.');return d;}
@@ -28,6 +31,7 @@ $('demo-payment-confirm').onclick=async()=>{if(busy||completed||!intent)return;b
 };
 try{const session=await api('session');csrf=session.csrf_token;const catalogue=await api('checkout/catalogue');demo=catalogue.demo_checkout===true;
  $('food').replaceChildren(new Option('Choose a meal',''),...catalogue.items.map(x=>new Option(x.name+' — '+money(x.price_cents),x.sku)));
+ if(catalogue.items.some(x=>x.sku===featuredSku))$('food').value=featuredSku;
  $('checkout-mode').textContent='DEMONSTRATION · Simulated payment, $0.00 charged. The robot journey is a simulation; no real food is dispatched.';$('purchase-submit').textContent=demo?'Continue to simulated payment':'Demonstration checkout unavailable';
  if(!session.authenticated){lock(true);message('Create an account or sign in before placing your order.',true);const login=Array.from(form.querySelectorAll('a')).find(a=>new URL(a.href).pathname==='/login.html');if(login)login.href='login.html?next='+encodeURIComponent('order.html'+location.search);return;}
  const saved=await api('missions');$('purchase-mission').replaceChildren(new Option('Choose a saved delivery location',''),...saved.missions.map(m=>new Option(m.destination_name+(m.reference?' · '+m.reference:''),m.mission_id)));

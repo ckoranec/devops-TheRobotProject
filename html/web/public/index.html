@@ -1,51 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Campus Eats - Your College Food Delivery Service</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="site-navigation.css?v=34">
-</head>
-<body>
-    <header class="maxx-site-header"><h1>MAXX Bytes</h1><nav aria-label="Main navigation"><ul><li><a href="index.html#home">Home</a></li><li><a href="login.html">Login</a></li><li><a href="coupon-wallet.html">My coupons</a></li><li><a href="menu.html#menu">Menu</a></li><li><a href="order.html#order">Order</a></li><li><a href="tracking.html">Track Delivery</a></li><li><a href="about.html#about">About MAXX Bytes</a></li><li><a href="contact.html#contact">Contact Us</a></li></ul></nav></header>
-
-    <main>
-        <section class="hero" id="home">
-            <h2>Delicious Campus Meals Delivered Fast</h2>
-            <p>Order your favorites from the comfort of your dorm.</p>
-            <div class="btn-group" style="margin-top: 20px;">
-                <a href="menu.html#menu"><button>Browse Menu</button></a>
-                <a href="tracking.html"><button style="background: #1f1f2e; margin-left: 10px;">Track Live Delivery</button></a>
-            </div>
-        </section>
-
-        <section class="card" id="menu">
-            <h2>Popular Items</h2>
-            <p>Check out what other students are loving this week!</p>
-            <ul>
-                <li><strong>Campus Classic Burger</strong> – $6.99</li>
-                <li><strong>Veggie Dorm Delight</strong> – $5.99</li>
-                <li><strong>Sushi Combo</strong> – $9.99</li>
-            </ul>
-        </section>
-
-        <section class="card" id="about">
-            <h2>About MAXX Byte</h2>
-            <p>We're a student-run initiative helping to connect hungry dorm-dwellers with fast, reliable food service—straight from local kitchens to your doorstep.</p>
-        </section>
-
-        <section class="card" id="contact">
-            <h2>Need Help?</h2>
-            <p>Have questions, ideas, or complaints? We're here for it. <a href="contact.html#contact">Get in touch</a> and let us know how we can improve your meal delivery experience.</p>
-        </section>
-    </main>
-
-    <footer>
-        <p>&copy; 2023 Campus Eats. All rights reserved.</p>
-    </footer>
-<!-- V32 customer access links; existing page layout retained. -->
-<script src="customer-navigation.js?v=34"></script>
-</body>
-</html>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="Meet your next study-break bite. Discover MAXX Bytes campus meals, choose your favorite, and explore our delivery demonstration.">
+<title>MAXX Bytes | Big flavor. Campus energy.</title>
+<link rel="stylesheet" href="site-navigation.css?v=37">
+<style>
+/* Landing-only styles keep the existing map and checkout layouts independent. */
+:root{--ink:#241b32;--muted:#675e70;--paper:#fffaf3;--accent:#de4b24;--purple:#442654;--line:#e9dfd3}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--paper);color:var(--ink);font-family:Arial,sans-serif;line-height:1.6}a{color:inherit}button,a,input{touch-action:manipulation}a:focus-visible,button:focus-visible{outline:3px solid #087c91;outline-offset:5px}img{max-width:100%;display:block}
+.skip{position:fixed;left:12px;top:-80px;z-index:100;background:white;padding:12px}.skip:focus{top:12px}
+.maxx-site-header{background:#fffaf3!important;color:var(--ink)!important;border-bottom:1px solid var(--line);padding:20px max(24px,calc((100vw - 1200px)/2))!important;display:flex;align-items:center;justify-content:space-between;gap:24px;flex-wrap:wrap}
+.maxx-site-header h1{font-size:25px!important;letter-spacing:-1px;margin:0!important;white-space:nowrap}.maxx-site-header nav ul{display:flex;gap:6px 14px;list-style:none;padding:0;margin:0;flex-wrap:wrap}.maxx-site-header nav a{font-size:13px!important;font-weight:700;color:var(--ink)!important;text-decoration:none;padding:6px 0!important}.maxx-site-header nav a[aria-current=page]{border-bottom:2px solid var(--accent)}
+main{max-width:1200px;margin:auto;padding:0 28px}.hero{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:52px;padding:64px 0 56px}.eyebrow{font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin:0 0 18px}h2{font-size:clamp(42px,5.2vw,72px);line-height:1.05;letter-spacing:-3px;margin:0 0 24px}.hero h2 span{color:var(--accent)}.lede{max-width:460px;color:var(--muted);font-size:18px}.actions{display:flex;gap:12px;flex-wrap:wrap;margin:28px 0 20px}.button{display:inline-flex;align-items:center;justify-content:center;border-radius:9px;padding:13px 20px;background:var(--accent);color:#fff;text-decoration:none;font-weight:700;border:1px solid var(--accent);cursor:pointer}.button.secondary{background:transparent;border-color:var(--line);color:var(--ink)}.micro{font-size:12px;color:var(--muted)}
+.hero-visual{position:relative}.hero-visual img{width:100%;aspect-ratio:1/1;object-fit:cover;border-radius:28px;background:#eddbbd}.photo-note{position:absolute;bottom:20px;left:20px;right:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;background:rgba(255,250,243,.96);border-radius:14px;box-shadow:0 8px 30px #241b3214}.photo-note strong{display:block}.photo-note span{font-size:12px;color:var(--muted)}.photo-note a{text-decoration:none;color:var(--accent);font-weight:800}
+.values{display:flex;justify-content:space-between;gap:18px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px 0;font-size:13px;font-weight:700}.values span{color:var(--accent);margin-right:8px}
+.featured{padding:64px 0}.section-heading{display:flex;align-items:end;justify-content:space-between;gap:24px;margin-bottom:26px}.section-heading h3,.story h3,.how h3{font-size:36px;line-height:1.15;letter-spacing:-1px;margin:0 0 12px}.section-heading p{margin:0;color:var(--muted)}.text-link{color:var(--accent);font-weight:700;text-underline-offset:4px;white-space:nowrap}.meal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}.meal{background:#fff;border:1px solid var(--line);border-radius:18px;overflow:hidden;display:flex;flex-direction:column}.meal img{width:100%;aspect-ratio:1.45;object-fit:cover;background:#efe3d2}.meal-content{padding:20px;display:flex;flex-direction:column;flex:1}.meal .tag{color:var(--accent);font-size:11px;letter-spacing:1px;font-weight:800;text-transform:uppercase}.meal h4{font-size:21px;margin:7px 0}.meal p{font-size:14px;color:var(--muted);margin:0 0 20px;flex:1}.meal-bottom{display:flex;align-items:center;justify-content:space-between;gap:12px}.meal-price{font-size:21px;font-weight:800}.meal .button{padding:10px 14px;font-size:13px}.menu-status{font-size:13px;color:var(--muted)}
+.how{background:#f1e9df;border-radius:24px;padding:36px;margin-bottom:32px}.how ol{list-style:none;display:grid;grid-template-columns:repeat(3,1fr);gap:28px;padding:0;margin:26px 0 0}.step{font-size:13px;color:var(--accent);font-weight:800}.how h4{font-size:18px;margin:8px 0}.how p{color:var(--muted);font-size:14px;margin:0}
+.story{background:var(--purple);color:#fff;border-radius:24px;padding:44px;display:grid;grid-template-columns:1fr 1fr;gap:44px;align-items:center;margin-bottom:48px}.story .eyebrow{color:#ffc49d}.story p{color:#e6d8ee}.story a{color:#fff}.story blockquote{font-size:24px;line-height:1.4;margin:0 0 24px;letter-spacing:-.5px}.story .button{background:#fff;color:var(--purple);border-color:white}
+.demo-note{padding:16px 20px;border:1px solid var(--line);border-radius:12px;font-size:13px;color:var(--muted);margin:0 0 30px}.site-footer{border-top:1px solid var(--line);padding:26px 28px;max-width:1200px;margin:auto;display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap;color:var(--muted);font-size:13px}.site-footer a{margin-left:18px}.failed-image{object-fit:contain!important}
+@media(max-width:900px){.hero{gap:28px}.maxx-site-header{justify-content:center}.meal-grid{grid-template-columns:repeat(2,1fr)}.values{flex-wrap:wrap}.story{gap:24px}}
+@media(max-width:620px){main{padding:0 20px}.hero{grid-template-columns:1fr;padding:36px 0;gap:24px}h2{letter-spacing:-2px}.hero-visual img{aspect-ratio:1.15}.meal-grid,.how ol,.story{grid-template-columns:1fr}.section-heading{align-items:start;flex-direction:column}.section-heading h3,.story h3,.how h3{font-size:30px}.story,.how{padding:26px}.values{font-size:12px;gap:12px}.featured{padding:40px 0}.maxx-site-header nav ul{justify-content:center}.photo-note{left:12px;right:12px;bottom:12px;padding:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style></head>
+<body><a class="skip" href="#home">Skip to meals and welcome</a>
+<header class="maxx-site-header"><h1>MAXX Bytes<span style="color:#de4b24">.</span></h1><nav aria-label="Main navigation"><ul><li><a href="index.html#home" aria-current="page">Home</a></li><li><a href="login.html">Login</a></li><li><a href="coupon-wallet.html">My coupons</a></li><li><a href="menu.html#menu">Menu</a></li><li><a href="order.html#order">Order</a></li><li><a href="tracking.html">Track Delivery</a></li><li><a href="about.html#about">About MAXX Bytes</a></li><li><a href="contact.html#contact">Contact Us</a></li></ul></nav></header>
+<main id="home"><section class="hero" aria-labelledby="welcome-title"><div><p class="eyebrow">Built around campus life</p><h2 id="welcome-title">Big flavor.<br>Little break.<br><span>You've earned it.</span></h2><p class="lede">Hey, hungry human. Welcome to MAXX Bytes — where study breaks, shared bites, and your next favorite meal come together.</p><div class="actions"><a class="button" href="#featured">Find your next bite ↗</a><a class="button secondary" href="menu.html#menu">Explore the full menu</a></div><p class="micro">A student-first idea. A little campus ingenuity. A lot to look forward to.</p></div><div class="hero-visual"><img src="data/images/Food/burger/CampusClassic.png" alt="Campus Classic burger with cheddar and fresh toppings" width="640" height="640" fetchpriority="high"><div class="photo-note"><div><strong>The Campus Classic</strong><span>A study-break kind of burger.</span></div><a href="order.html?sku=campus-classic#order" aria-label="Choose Campus Classic">Let's eat ↗</a></div></div></section>
+<div class="values" aria-label="Explore MAXX Bytes"><div><span>01</span>Choose your craving</div><div><span>02</span>Explore robot delivery</div><div><span>03</span>Make your break a little more fun</div></div>
+<section class="featured" id="featured" aria-labelledby="featured-title"><div class="section-heading"><div><p class="eyebrow">Your next “that hit the spot”</p><h3 id="featured-title">Good bites. Great breaks.</h3><p>Pick a meal below and take it straight to your order.</p></div><a class="text-link" href="menu.html#menu">See the whole menu ↗</a></div><div class="meal-grid" id="featured-meals">
+<!-- Real catalogue SKUs keep each featured meal linked to the existing checkout. -->
+<article class="meal" data-sku="campus-classic"><img src="data/images/Food/burger/CampusClassic.png" alt="Campus Classic" width="480" height="330" loading="lazy"><div class="meal-content"><span class="tag">The study-break classic</span><h4>Campus Classic</h4><p>Cheddar, fresh toppings, and our secret sauce.</p><div class="meal-bottom"><span class="meal-price">$6.99</span><a class="button" href="order.html?sku=campus-classic#order" aria-label="Order Campus Classic">Order this bite ↗</a></div></div></article>
+<article class="meal" data-sku="veggie-dorm-delight"><img src="data/images/Food/burger/VeggieDorm.png" alt="Veggie Dorm Delight" width="480" height="330" loading="lazy"><div class="meal-content"><span class="tag">Plant-based bite</span><h4>Veggie Dorm Delight</h4><p>Plant-based patty, avocado, spinach, and vegan aioli.</p><div class="meal-bottom"><span class="meal-price">$5.99</span><a class="button" href="order.html?sku=veggie-dorm-delight#order" aria-label="Order Veggie Dorm Delight">Order this bite ↗</a></div></div></article>
+<article class="meal" data-sku="california-roll"><img src="data/images/Food/sushi/californiaRoll.png" alt="California Roll" width="480" height="330" loading="lazy"><div class="meal-content"><span class="tag">Roll into your break</span><h4>California Roll</h4><p>Crab, avocado, and cucumber. Made for a change of pace.</p><div class="meal-bottom"><span class="meal-price">$8.50</span><a class="button" href="order.html?sku=california-roll#order" aria-label="Order California Roll">Order this bite ↗</a></div></div></article>
+<article class="meal" data-sku="protein-power-bowl"><img src="data/images/Food/salads/proteinPower.png" alt="Protein Power Bowl" width="480" height="330" loading="lazy"><div class="meal-content"><span class="tag">Bowl goals</span><h4>Protein Power Bowl</h4><p>Grilled chicken, quinoa, roasted vegetables, and tahini.</p><div class="meal-bottom"><span class="meal-price">$8.99</span><a class="button" href="order.html?sku=protein-power-bowl#order" aria-label="Order Protein Power Bowl">Order this bite ↗</a></div></div></article>
+<article class="meal" data-sku="loaded-fries"><img src="data/images/Food/snacks/loadedFries.png" alt="Loaded Fries" width="480" height="330" loading="lazy"><div class="meal-content"><span class="tag">A little extra comfort</span><h4>Loaded Fries</h4><p>Cheese, bacon bits, and sour cream. Bring your appetite.</p><div class="meal-bottom"><span class="meal-price">$4.99</span><a class="button" href="order.html?sku=loaded-fries#order" aria-label="Order Loaded Fries">Order this bite ↗</a></div></div></article>
+<article class="meal" data-sku="fudge-brownie"><img src="data/images/Food/desserts/fudgeBrownie.png" alt="Fudge Brownie" width="480" height="330" loading="lazy"><div class="meal-content"><span class="tag">The sweet finish</span><h4>Fudge Brownie</h4><p>A chocolate moment to round out your meal.</p><div class="meal-bottom"><span class="meal-price">$2.25</span><a class="button" href="order.html?sku=fudge-brownie#order" aria-label="Order Fudge Brownie">Order this bite ↗</a></div></div></article>
+</div><p class="menu-status" id="menu-status" role="status">Menu prices shown; your checkout confirms the current total.</p></section>
+<section class="how" aria-labelledby="how-title"><p class="eyebrow">From craving to campus adventure</p><h3 id="how-title">A better kind of study break.</h3><ol><li><span class="step">01 / PICK YOUR BITE</span><h4>Something for your mood.</h4><p>Choose a featured meal, sign in, and save your delivery location.</p></li><li><span class="step">02 / FOLLOW THE JOURNEY</span><h4>Meet your delivery sidekick.</h4><p>Confirm a no-charge demo order and follow its simulated robot journey.</p></li><li><span class="step">03 / PLAY WHILE YOU WAIT</span><h4>A little fun on the way.</h4><p>Try Snack Chase during your demo delivery. Complete the challenge before arrival for a 15% demo coupon.</p></li></ol></section>
+<section class="story" aria-labelledby="story-title"><div><p class="eyebrow">The idea behind every byte</p><h3 id="story-title">Built by one student.<br>Scaled by many.</h3><p>Our founding story began with a hungry student and a simple thought: campus food delivery should understand campus life. That student-first spirit is what we're building around.</p></div><div><blockquote>Food is more than fuel. It's a break between classes, a reason to gather, and a small way to take care of each other.</blockquote><a class="button" href="about.html#about">Meet the MAXX Bytes story ↗</a></div></section>
+<aside class="demo-note"><strong>You're exploring a demonstration.</strong> Checkout uses simulated payment with $0 charged. Robot movement and delivery are simulated; no real food or robot is dispatched. Coupons belong to the demo experience.</aside></main>
+<footer class="site-footer"><div><strong>MAXX Bytes.</strong> Campus energy, one bite at a time.</div><div><a href="about.html#about">Our story</a><a href="contact.html#contact">Say hello</a></div></footer>
+<script src="customer-navigation.js?v=37"></script>
+<script>
+/* Refresh displayed prices from the same catalogue the server uses at checkout. */
+(async()=>{'use strict';const status=document.getElementById('menu-status');try{const r=await fetch('/api/customer/checkout/catalogue',{credentials:'same-origin',cache:'no-store'});if(!r.ok)throw Error('catalogue unavailable');const data=await r.json();if(!Array.isArray(data.items))throw Error('invalid catalogue');for(const card of document.querySelectorAll('[data-sku]')){const item=data.items.find(x=>x.sku===card.dataset.sku);if(!item){card.querySelector('.button').href='menu.html#menu';card.querySelector('.button').textContent='View menu';continue;}if(Number.isInteger(item.price_cents))card.querySelector('.meal-price').textContent='$'+(item.price_cents/100).toFixed(2);}status.textContent='Current menu prices · Final totals confirmed at checkout. Demo orders charge $0.';}catch(_){status.textContent='Menu preview prices · Live prices will be confirmed at checkout.';}})();
+</script></body></html>
