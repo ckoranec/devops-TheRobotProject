@@ -126,13 +126,19 @@ os.chown(dbfile,account.pw_uid,account.pw_gid);dbfile.chmod(0o600)
 if not envfile.exists():write_atomic(envfile,('MAX_BYTE_SECRET_KEY='+secrets.token_hex(32)+'\nMAX_BYTE_DATABASE_URI=sqlite:////var/lib/max-byte-api/max_byte.db\nPYTHONDONTWRITEBYTECODE=1\n').encode(),0o600)
 
 assets=['MapAPI.html', 'tracking.html', 'index.html', 'menu.html', 'order.html', 'delivery-location.html', 'delivery-location.js', 'coupon-wallet.html', 'coupon-wallet.js', 'purchase-checkout.js', 'customer-pages.css', 'customer-navigation.js', 'map-personality.js', 'robot-simulation.js', 'snack-chase.js', 'snack-chase.css', 'max-byte-layout-repair.css', 'max-byte-layout-repair.js', 'max-byte-approved-layout.js', 'map-layers.js', 'mission-core.js', 'mission-ui.css', 'shared-map-layout.js', 'map-presentation.js', 'natural-game-core.js', 'customer-game-arena.js', 'offline-route-planner.html', 'offline-route-planner.js', 'offline-routing.js', 'data/gmu_map.json', 'data/mission-route.json', 'data/mission-network.json', 'data/offline-network.json', 'data/natural-game-network.json', 'audio/snack-chase-original-funk.mp3', 'success.html', 'checkout.css', 'login.html', 'customer-account.js', 'verify.html', 'contact.html', 'campusOrderLogs.html', 'site-navigation.css', 'about.html', 'demo-delivery.js']
+# V36: publish stylesheet and all tracked public image dependencies.
+assets.append('css/styles.css')
+image_root = release/'html/web/public/data/images'
+for image_path in sorted(image_root.rglob('*')):
+    if image_path.is_file() and image_path.suffix.lower() in {'.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg'}:
+        assets.append(image_path.relative_to(release/'html/web/public').as_posix())
 changes={}
 for name in assets:
     path=release/'html/web/public'/name
     if not path.is_file():raise SystemExit('Approved public asset missing: '+name)
     content=path.read_bytes();target='map-data/'+name[5:] if name.startswith('data/') else name
     if name.endswith(('.html','.js','.css')):
-        value=content.decode();value=re.sub(r'([\"\'])data/',r'\1map-data/',value)
+        value=content.decode().replace('../data/images/', '../map-data/images/');value=re.sub(r'([\"\'])data/',r'\1map-data/',value)
         if name.endswith('.html'):
             value=re.sub(r'((?:src|href)=[\"\'])([A-Za-z0-9_-]+\.(?:js|css))(?:\?[^\"\']*)?([\"\'])',lambda m:m[1]+m[2]+'?v='+commit[:12]+m[3],value)
         content=value.encode()

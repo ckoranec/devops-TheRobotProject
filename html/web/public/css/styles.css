@@ -80,7 +80,7 @@ main {
 
 /* ==== Hero Banner ==== */
 .hero {
-    background: linear-gradient(rgba(31,31,46,0.85), rgba(31,31,46,0.85)), url('img/hero-food.jpg') no-repeat center center/cover;
+    background: linear-gradient(rgba(31,31,46,0.85), rgba(31,31,46,0.85)), url('../data/images/bgImage/campus_Eats.png') no-repeat center center/cover;
     color: white;
     text-align: center;
     padding: 6rem 2rem;
