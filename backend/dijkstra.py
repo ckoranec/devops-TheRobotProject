@@ -13,6 +13,7 @@ ALLOWED = {"footway", "path", "steps", "pedestrian"} #Walk tags that match red d
 METERS_PER_DEG_LAT = 111_320.0
 
 def flat_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    """Flat distance in meters, using a local scale. Not haversine."""
     lat_scale = METERS_PER_DEG_LAT
     lon_scale = METERS_PER_DEG_LAT * math.cos(math.radians((lat1 + lat2) / 2))
     dx = (lon2 - lon1) * lon_scale
@@ -47,7 +48,7 @@ class Graph: #Full graph of nodes and edges
         self.adj[b].append(Edge(a, cost, list(reversed(coords_a_to_b)), way_id, highway))
 
 
-def load_walk_graph(osm_path: str): #Modify for json
+def load_walk_graph(osm_path: str):
     coords: dict[str, tuple[float, float]] = {} #OSM ID and coordinate position
     ways: list[tuple[str, str, list[str]]] = [] #
 
@@ -169,7 +170,7 @@ def line_to_geojson(line: list[tuple[float, float]], meters: float, start: str, 
     }
 
 
-def main(): #change name to dijkstra()
+def main():
     parser = argparse.ArgumentParser(description="Dijkstra on OSM red-dotted footways")
     parser.add_argument("osm")
     parser.add_argument("start_lat", type=float)
@@ -193,8 +194,12 @@ def main(): #change name to dijkstra()
     meters, nodes, line = result
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(line_to_geojson(line, meters, start, goal), fh)
-    print(f"routing nodes: {len(graph.nodes)}") #Change to something else, maybe raise instead of print
+    print(f"routing nodes: {len(graph.nodes)}")
     print(f"snapped start {start}  -> goal {goal} ")
     print(f"path nodes: {len(nodes)}")
     print(f"length: {meters:.1f} m")
     print(f"wrote {args.out}")
+
+
+if __name__ == "__main__":
+    main()
