@@ -7,7 +7,7 @@ import math
 from dataclasses import dataclass, field
 
 
-ALLOWED = {"footway", "path", "steps", "pedestrian", "service", "residential", "tertiary", "cycleway", "secondary", "unclassified", "tertiary_link", "primary", "primary_link"} #Walk tags that match red dotted lines on map
+ALLOWED = {"footway", "path", "pedestrian", "service", "residential", "tertiary", "cycleway", "secondary", "unclassified", "tertiary_link", "primary", "primary_link"} #Walk tags that match red dotted lines on map
 
 METERS_PER_DEG_LAT = 111_320.0
 
