@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Tell the browser how to interpret text characters. -->
+  <meta charset="UTF-8">
+
+  <!-- Adapt the page width to the device displaying it. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- This text appears on the browser tab. -->
+  <title>MAXX Bytes Campus Map</title>
+
+  <!-- Load Leaflet's CSS, which formats map controls and attribution.
+       href contains a plain URL, without Markdown link formatting. -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <style>
+    /* Set the page's font, spacing, background, and text color. */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f2f6f8;
+      color: #172b3a;
+    }
+
+    /* Target the element whose id is campus-map.
+       A visible height is necessary for the map to appear. */
+    #campus-map {
+      height: 65vh;
+      min-height: 350px;
+      border: 2px solid #172b3a;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>MAXX Bytes Campus Map</h1>
+
+  <p>I, David, created this page. Next I will add the campus GIS layers.</p>
+
+  <!-- Leaflet draws the interactive map inside this container. -->
+  <div
+    id="campus-map"
+    aria-label="Interactive George Mason University campus map"
+  ></div>
+
+  <!-- Load Leaflet before using its JavaScript functions below. -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    "use strict";
+
+    // Declare a variable named campusMap and store the map in it.
+    // The quoted id must match the HTML container's id exactly.
+    // Leaflet expects [latitude, longitude].
+    // Northern Virginia has a negative longitude because it is west
+    // of the prime meridian. Zoom 16 shows the campus neighborhood.
+    const campusMap = L.map("campus-map").setView(
+      [38.831, -77.307],
+      16
+    );
+
+    // Request background map images from OpenStreetMap.
+    // Leaflet fills in {z}, {x}, and {y} for the visible map tiles.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+
+      // Keep the map source visibly credited.
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">' +
+        'OpenStreetMap contributors</a>'
+    }).addTo(campusMap);
+  </script>
+</body>
+</html>
