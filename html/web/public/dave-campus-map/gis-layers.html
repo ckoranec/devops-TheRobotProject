@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Tell the browser how to interpret text characters. -->
+  <meta charset="UTF-8">
+
+  <!-- Fit the page to desktop and phone screens. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- This title appears on the browser tab. -->
+  <title>MAXX Bytes GIS Layers</title>
+
+  <!-- Load Leaflet's stylesheet for map controls and attribution. -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <style>
+    /* Set the page's font, spacing, and colors. */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      color: #172b3a;
+      background-color: #f2f6f8;
+    }
+
+    /* Reserve space for the map.
+       Without a height, the map can appear invisible. */
+    #campus-map {
+      height: 65vh;
+      min-height: 350px;
+      border: 2px solid #172b3a;
+      border-radius: 8px;
+    }
+
+    /* Space the color-key entries for easier reading. */
+    #gis-key {
+      line-height: 1.8;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>MAXX Bytes Campus GIS Layers</h1>
+
+  <p>Use the map checkboxes to show or hide each category.</p>
+
+  <!-- Leaflet draws the map inside this container. -->
+  <div
+    id="campus-map"
+    aria-label="Interactive George Mason University campus map"
+  ></div>
+
+  <!-- Our JavaScript replaces this message with feature counts. -->
+  <p id="gis-status" role="status">Loading campus layers…</p>
+
+  <!-- Our JavaScript adds the category names and matching colors. -->
+  <h2>Color key</h2>
+  <ul id="gis-key"></ul>
+
+  <p>
+    GIS source: OpenStreetMap export, gmu_map_16OCT26.json.
+    Restriction features represent access tags.
+    Routes require team review before robot navigation.
+  </p>
+
+  <!-- Load Leaflet before calling its JavaScript functions. -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    "use strict";
+
+    // Create the map in the container whose id is campus-map.
+    // setView expects one [latitude, longitude] pair, then zoom.
+    // Negative longitude places the view in Northern Virginia.
+    const campusMap = L.map("campus-map").setView(
+      [38.831, -77.307],
+      16
+    );
+
+    // Add background tiles. Leaflet supplies their zoom and positions.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+
+      // Display the map-source credit in the map's corner.
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">' +
+        'OpenStreetMap contributors</a>'
+    }).addTo(campusMap);
+  </script>
+
+  <!-- Load our layer script after campusMap has been created.
+       "./" means the JavaScript is in the same folder as this page. -->
+  <script src="./campus-layers.js"></script>
+</body>
+</html>
