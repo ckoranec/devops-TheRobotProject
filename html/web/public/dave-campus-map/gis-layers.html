@@ -34,9 +34,11 @@
       border-radius: 8px;
     }
 
-    /* Space the color-key entries for easier reading. */
-    #gis-key {
-      line-height: 1.8;
+   
+    .leaflet-control-layers-overlays input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      vertical-align: middle;
     }
   </style>
 </head>
@@ -56,9 +58,7 @@
   <!-- Our JavaScript replaces this message with feature counts. -->
   <p id="gis-status" role="status">Loading campus layers…</p>
 
-  <!-- Our JavaScript adds the category names and matching colors. -->
-  <h2>Color key</h2>
-  <ul id="gis-key"></ul>
+
 
   <p>
     GIS source: OpenStreetMap export, gmu_map_16OCT26.json.
