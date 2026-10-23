@@ -5,6 +5,39 @@ LAYER_NAMES = ["way"]
 WAY_TYPE_KEY = "highway"           # tag used to tell ways apart
 NO_TYPE_LABEL = "(no highway tag)"
 
+def geojson_to_elements(features):
+    """Convert GeoJSON features into Overpass-style 'way' elements."""
+    elements = []
+    for i, feat in enumerate(features):
+        if not isinstance(feat, dict):
+            elements.append(feat)          # find_problem will flag it
+            continue
+
+        geom = feat.get("geometry") or {}
+        props = feat.get("properties") or {}
+        gtype = geom.get("type")
+        fid = feat.get("id", props.get("@id", props.get("id", i)))
+
+        if gtype == "LineString":
+            lines = [geom.get("coordinates")]
+        elif gtype == "MultiLineString":
+            lines = geom.get("coordinates") or []
+        else:
+            # Point, Polygon, null geometry, etc. -> flagged as unexpected type
+            elements.append({"type": gtype, "id": fid})
+            continue
+
+        for line in lines:
+            points = []
+            for pt in line if isinstance(line, list) else []:
+                if (isinstance(pt, list) and len(pt) >= 2
+                        and all(isinstance(v, (int, float)) for v in pt[:2])):
+                    points.append({"lat": pt[1], "lon": pt[0]})   # GeoJSON is [lon, lat]
+                else:
+                    points.append({})      # flagged as missing lat/lon
+            elements.append({"type": "way", "id": fid,
+                             "tags": props, "geometry": points})
+    return elements
 
 # Load json file and check validitaty 
 def load_data(path):
@@ -15,36 +48,41 @@ def load_data(path):
         sys.exit(f"ERROR: file not found: {path}")
     except json.JSONDecodeError as e:
         sys.exit(f"ERROR: file is not valid JSON: {e}")
- 
-    if not isinstance(data, dict) or not isinstance(data.get("elements"), list):
-        sys.exit("ERROR: no 'elements' list found. Is this Overpass JSON?")
- 
-    # check if timeout / memory caused an incomplete file
-    if data.get("remark"):
-        print("WARNING: Overpass remark:", data["remark"])
- 
-    return data["elements"]
 
-#check if JSON elements are correctly formated and useable 
+    if isinstance(data, dict) and isinstance(data.get("features"), list):
+        print("Detected format: GeoJSON")
+        return geojson_to_elements(data["features"])
+
+    if isinstance(data, dict) and isinstance(data.get("elements"), list):
+        print("Detected format: Overpass JSON")
+        if data.get("remark"):
+            print("WARNING: Overpass remark:", data["remark"])
+        return data["elements"]
+
+    sys.exit("ERROR: neither a GeoJSON FeatureCollection nor Overpass JSON.")
+
 def find_problem(el):
     if not isinstance(el, dict):
         return "element is not an object"
     if el.get("type") not in LAYER_NAMES:
-        # a 'node' or 'relation' here means the query/output format changed
         return f"unexpected type: {el.get('type')!r}"
-    if not isinstance(el.get("id"), int):
+    if not isinstance(el.get("id"), (int, str)):       # str allowed for GeoJSON ids
         return "missing or invalid id"
- 
-    # way checks
-    refs = el.get("nodes")
-    if not isinstance(refs, list) or len(refs) < 2:
-        return "way has fewer than 2 node ids"
- 
+
     geom = el.get("geometry")
     if not isinstance(geom, list) or not geom:
         return "way has no coordinates"
-    if len(geom) != len(refs):
-        return "way geometry does not match its node ids"
+
+    # Overpass ways carry node ids; GeoJSON ones don't, so only check if present
+    if "nodes" in el:
+        refs = el["nodes"]
+        if not isinstance(refs, list) or len(refs) < 2:
+            return "way has fewer than 2 node ids"
+        if len(geom) != len(refs):
+            return "way geometry does not match its node ids"
+    elif len(geom) < 2:
+        return "way has fewer than 2 points"
+
     for pt in geom:
         if (not isinstance(pt, dict)
                 or not isinstance(pt.get("lat"), (int, float))
