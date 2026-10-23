@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Tell the browser how to interpret text characters. -->
+  <meta charset="UTF-8">
+
+  <!-- Adapt the page width to the device displaying it. -->
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- This text appears on the browser tab. -->
+  <title>MAXX Bytes Campus Map</title>
+
+  <!-- Load Leaflet's CSS, which formats map controls and attribution.
+       href contains a plain URL, without Markdown link formatting. -->
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+  >
+
+  <style>
+    /* Set the page's font, spacing, background, and text color. */
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f2f6f8;
+      color: #172b3a;
+    }
+
+    /* Target the element whose id is campus-map.
+       A visible height is necessary for the map to appear. */
+    #campus-map {
+      height: 65vh;
+      min-height: 350px;
+      border: 2px solid #172b3a;
+      border-radius: 10px;
+    }
+
+    /*a line of text under the map that reports loading problems. */
+    #layer-status {
+      margin-top: 10px;
+      font-size: 0.9rem;
+    }
+
+     /*the layer switcher panel in the top-right corner of the map. */
+     .layer-control {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+      max-height: 50vh;       /* scroll if the list is taller than the map */
+      overflow-y: auto;
+      min-width: 170px;
+    }
+    .layer-control h4 {
+      margin: 0 0 8px;
+      font-size: 0.9rem;
+    }
+
+     /* The "Show all" and "Hide all" buttons sit side by side. */
+    .layer-actions {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .layer-actions button {
+      flex: 1;
+      padding: 4px 6px;
+      font-size: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      background: #f5f5f5;
+      cursor: pointer;
+    }
+
+     /* One button per layer: a color swatch followed by the layer name. */
+     .layer-btn {
+      display: flex;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 4px;
+      padding: 4px 6px;
+      font-size: 0.8rem;
+      text-align: left;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      background: #fff;
+      color: #172b3a;
+      cursor: pointer;
+    }
+    .layer-btn .swatch {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      margin-right: 8px;
+      border-radius: 3px;
+      flex-shrink: 0;
+    }
+ 
+    /* A layer that is turned off looks faded and grey. */
+    .layer-btn:not(.active) { opacity: 0.45; }
+    .layer-btn:not(.active) .swatch { background: #ccc !important; }
+  </style>
+</head>
+
+<body>
+  <h1>MAXX Bytes Campus Map</h1>
+
+  <p>I, David, created this page. Next I will add the campus GIS layers.</p>
+
+  <!-- Leaflet draws the interactive map inside this container. -->
+  <div
+    id="campus-map"
+    aria-label="Interactive George Mason University campus map"
+  ></div>
+
+  <p id="layer-status"></p>
+
+  <!-- Load Leaflet before using its JavaScript functions below. -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <script>
+    "use strict";
+
+    // Declare a variable named campusMap and store the map in it.
+    // The quoted id must match the HTML container's id exactly.
+    // Leaflet expects [latitude, longitude].
+    // Northern Virginia has a negative longitude because it is west
+    // of the prime meridian. Zoom 16 shows the campus neighborhood.
+    const campusMap = L.map("campus-map").setView(
+      [38.831, -77.307],
+      16
+    );
+
+    // Request background map images from OpenStreetMap.
+    // Leaflet fills in {z}, {x}, and {y} for the visible map tiles.
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+
+      // Keep the map source visibly credited.
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">' +
+        'OpenStreetMap contributors</a>'
+    }).addTo(campusMap);
+
+    const DATA_FILE = "/gmu_map_16OCT26.json"
+    
+    
+
+    const ROAD_COLORS = {
+      footway:       "#2ca02c",  // green
+      path:          "#8c564b",  // brown
+      cycleway:      "#17becf",  // teal
+      steps:         "#e377c2",  // pink
+      pedestrian:    "#e6b800",  // golden yellow
+      service:       "#7f7f7f",  // grey
+      residential:   "#1f77b4",  // blue
+      unclassified:  "#aec7e8",  // light blue
+      tertiary:      "#ff7f0e",  // orange
+      tertiary_link: "#ffbb78",  // light orange
+      secondary:     "#d62728",  // red
+      primary:       "#9467bd",  // purple
+      primary_link:  "#c5b0d5"   // light purple
+    };
+
+    // Any highway type missing from the list above is drawn in black,
+    // so a new type is easy to spot. Add it to ROAD_COLORS to fix it.
+    const FALLBACK_COLOR = "#000000";
+
+    // Line thickness in pixels. Bigger roads are drawn thicker.
+    const ROAD_WIDTHS = {
+      primary: 5, secondary: 4.5, tertiary: 4, residential: 3.5,
+      service: 2.5, footway: 2.5, path: 2.5, cycleway: 3, steps: 3
+    };
+    const DEFAULT_WIDTH = 3;
+    const roadLayers = {};
+
+    // Draw every way from the data file, grouped by highway type.
+    function addRoadLayers(elements) {
+      // A pane is a drawing level. The map's default line level is 400,
+      // so 390 keeps these roads just underneath any lines added later.
+      campusMap.createPane("roads");
+      campusMap.getPane("roads").style.zIndex = 390;
+ 
+      const renderer = L.canvas({ pane: "roads" });
+ 
+      elements.forEach(function (el) {
+        // Only ways that carry their own coordinates can be drawn.
+        if (el.type !== "way" || !el.geometry) return;
+ 
+        // The highway tag says what kind of way this is.
+        const type = el.tags && el.tags.highway ? el.tags.highway : "other";
+ 
+        // The first time we see a type, create its layer.
+        if (!roadLayers[type]) {
+          roadLayers[type] = {
+            group: L.layerGroup(),
+            color: ROAD_COLORS[type] || FALLBACK_COLOR,
+            count: 0,
+            button: null
+          };
+        }
+        const layer = roadLayers[type];
+ 
+        // Each geometry point is {lat, lon}. Leaflet wants [lat, lon].
+        const points = el.geometry.map(function (p) {
+          return [p.lat, p.lon];
+        });
+ 
+        // Hovering over a line shows its type, and its name if it has one.
+        const label = el.tags && el.tags.name
+          ? type + ": " + el.tags.name
+          : type;
+ 
+        L.polyline(points, {
+          color: layer.color,
+          weight: ROAD_WIDTHS[type] || DEFAULT_WIDTH,
+          opacity: 0.85,
+          pane: "roads",
+          renderer: renderer
+        })
+          .bindTooltip(label, { sticky: true })
+          .addTo(layer.group);
+ 
+        layer.count++;
+      });
+ 
+      // Start with every layer visible.
+      Object.values(roadLayers).forEach(function (layer) {
+        layer.group.addTo(campusMap);
+      });
+ 
+      addLayerControl();
+    }
+ 
+    // Turn one layer on or off, and update its button to match.
+    function setLayerVisible(type, visible) {
+      const layer = roadLayers[type];
+      if (visible) {
+        campusMap.addLayer(layer.group);
+      } else {
+        campusMap.removeLayer(layer.group);
+      }
+      layer.button.classList.toggle("active", visible);
+    }
+
+    // Build the panel of buttons in the top-right corner of the map.
+    function addLayerControl() {
+      const control = L.control({ position: "topright" });
+ 
+      control.onAdd = function () {
+        const div = L.DomUtil.create("div", "layer-control");
+ 
+        // Stop clicks and scrolling on the panel from moving the map.
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+ 
+        const title = L.DomUtil.create("h4", "", div);
+        title.textContent = "Map layers";
+ 
+        // "Show all" and "Hide all"
+        const actions = L.DomUtil.create("div", "layer-actions", div);
+ 
+        const showAll = L.DomUtil.create("button", "", actions);
+        showAll.textContent = "Show all";
+        showAll.onclick = function () {
+          Object.keys(roadLayers).forEach(function (t) {
+            setLayerVisible(t, true);
+          });
+        };
+ 
+        const hideAll = L.DomUtil.create("button", "", actions);
+        hideAll.textContent = "Hide all";
+        hideAll.onclick = function () {
+          Object.keys(roadLayers).forEach(function (t) {
+            setLayerVisible(t, false);
+          });
+        };
+ 
+        // One button per highway type, the biggest group first.
+        Object.entries(roadLayers)
+          .sort(function (a, b) { return b[1].count - a[1].count; })
+          .forEach(function (entry) {
+            const type = entry[0];
+            const layer = entry[1];
+ 
+            const btn = L.DomUtil.create("button", "layer-btn active", div);
+            const swatch = L.DomUtil.create("span", "swatch", btn);
+            swatch.style.background = layer.color;
+            btn.appendChild(
+              document.createTextNode(type + " (" + layer.count + ")")
+            );
+ 
+            // Clicking flips the layer: on becomes off, off becomes on.
+            btn.onclick = function () {
+              const isOn = btn.classList.contains("active");
+              setLayerVisible(type, !isOn);
+            };
+ 
+            layer.button = btn;
+          });
+ 
+        return div;
+      };
+ 
+      control.addTo(campusMap);
+    }
+
+    // ---- LOAD THE DATA, THEN DRAW IT ----
+    const statusLine = document.getElementById("layer-status");
+ 
+    fetch(DATA_FILE)
+      .then(function (response) {
+        if (!response.ok) {
+          throw new Error("HTTP " + response.status);
+        }
+        return response.json();
+      })
+      .then(function (data) {
+        addRoadLayers(data.elements);
+        statusLine.textContent = "";
+      })
+      .catch(function (err) {
+        console.error("Could not load " + DATA_FILE + ":", err);
+        statusLine.textContent =
+          "Could not load " + DATA_FILE + " (" + err.message + "). " +
+          "Make sure the file is in the Root folder " +
+          "opened through a web server.";
+      });
+  </script>
+</body>
+</html>
