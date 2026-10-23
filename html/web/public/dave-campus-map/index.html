@@ -113,6 +113,8 @@
     aria-label="Interactive George Mason University campus map"
   ></div>
 
+  <p id="layer-status"></p>
+
   <!-- Load Leaflet before using its JavaScript functions below. -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
@@ -140,7 +142,9 @@
         'OpenStreetMap contributors</a>'
     }).addTo(campusMap);
 
-    const DATA_FILE = "../../../../gmu_map_16OCT26.json"
+    const DATA_FILE = "/gmu_map_16OCT26.json"
+    
+    
 
     const ROAD_COLORS = {
       footway:       "#2ca02c",  // green
@@ -177,8 +181,6 @@
       campusMap.createPane("roads");
       campusMap.getPane("roads").style.zIndex = 390;
  
-      // A canvas renderer draws about 1,800 lines much faster than
-      // creating one SVG element for each line.
       const renderer = L.canvas({ pane: "roads" });
  
       elements.forEach(function (el) {
@@ -318,14 +320,11 @@
         statusLine.textContent = "";
       })
       .catch(function (err) {
-        // Most common cause: the page was opened by double-clicking the
-        // file (file://). Browsers block fetch() there. See the note in
-        // the instructions about starting a local web server.
         console.error("Could not load " + DATA_FILE + ":", err);
         statusLine.textContent =
           "Could not load " + DATA_FILE + " (" + err.message + "). " +
-          "Make sure the file is in the same folder and the page is " +
-          "opened through a web server, not by double-clicking it.";
+          "Make sure the file is in the Root folder " +
+          "opened through a web server.";
       });
   </script>
 </body>
