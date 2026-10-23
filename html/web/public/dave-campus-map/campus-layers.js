@@ -12,10 +12,10 @@
   };
 
   const statusMessage = document.getElementById("gis-status");
-  const legend = document.getElementById("gis-key");
+ 
 
   // Stop with a useful console message if the HTML is incomplete.
-  if (!statusMessage || !legend) {
+  if (!statusMessage ) {
     console.error("The page needs elements named gis-status and gis-key.");
     return;
   }
@@ -70,22 +70,28 @@
       layerGroups[key] = group;
       overlayChoices[category.label] = group;
 
-      // Use the same category settings to build the color key.
-      const item = document.createElement("li");
-      const swatch = document.createElement("span");
-
-      swatch.textContent = "■ ";
-      swatch.style.color = category.color;
-      swatch.setAttribute("aria-hidden", "true");
-
-      item.append(swatch, document.createTextNode(category.label));
-      legend.append(item);
+     
     }
 
     // Leaflet creates the category checkboxes.
-    L.control.layers(null, overlayChoices, {
-      collapsed: false
-    }).addTo(campusMap);
+      L.control.layers(null, overlayChoices, {
+        collapsed: false
+      }).addTo(campusMap);
+
+      // Tint each checkbox with its category color.
+      const colorByLabel = {};
+      for (const category of Object.values(categories)) {
+        colorByLabel[category.label] = category.color;
+      }
+
+      document
+        .querySelectorAll(".leaflet-control-layers-overlays label")
+        .forEach(function (label) {
+          const color = colorByLabel[label.textContent.trim()];
+          if (color) {
+            label.querySelector("input").style.accentColor = color;
+          }
+        });
 
     // Read our export without modifying its contents.
     const response = await fetch("./campus-layers.geojson");
