@@ -1,0 +1,15 @@
+{
+  "url": "https://api.openstreetmap.org/api/0.6/map?bbox=-77.312,38.827,-77.299,38.835",
+  "retrieved_at": "2026-10-26T18:21:35.435276+00:00",
+  "kind": "OSM snapshot retrieved from API, not a live robot/closure/crowd feed",
+  "bbox": [
+    -77.312,
+    38.827,
+    -77.299,
+    38.835
+  ],
+  "building_count": 145,
+  "path_feature_count": 885,
+  "license": "ODbL; OpenStreetMap contributors",
+  "schema_note": "Raw normalized map uses the legacy filename for adapter compatibility; collection date is retrieved_at."
+}

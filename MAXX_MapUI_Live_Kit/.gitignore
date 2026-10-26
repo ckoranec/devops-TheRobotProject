@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv/
+.idea/
+*.log
+
+# Actual local field observations, reporter identities and keys never belong in Git.
+runtime/
