@@ -22,7 +22,16 @@ east = -77.292338
 
 query = f"""
 [out:json][timeout:120];
-way["highway"]({south},{west},{north},{east});
+(
+    way["highway"]({south},{west},{north},{east});
+    node["barrier"]({south},{west},{north},{east});
+    way["barrier"]({south},{west},{north},{east});
+    node["construction"]({south},{west},{north},{east});
+    way["construction"]({south},{west},{north},{east});
+    way["landuse"="construction"]({south},{west},{north},{east});
+    node["access"="no"]({south},{west},{north},{east});
+    way["access"="no"]({south},{west},{north},{east});
+);
 out geom;
 """
 # coordinates of the area to query, area drawn manually in Overpass Turbo via bbox to include all of GMU's campus
@@ -50,14 +59,33 @@ for url in servers:
             if "elements" not in data or "remark" in data:
                 print("Unexpected or incomplete API result.")
                 continue
+
+            for element in data["elements"]:
+                tags = element.get("tags", {})
+
+                if "note" in tags:
+                    print(element["id"], tags["note"])
+
+            way_count = 0
+
+            for element in data["elements"]:
+                if element.get("type") == "way":
+                    way_count += 1
+
+            if way_count == 0:
+                print("No ways found. Trying the next server.")
+                continue
+
+            print(f"Found {way_count} ways.")
+
             incomplete_ways = 0
 
             for element in data["elements"]:
-                if element["type"] == "way":
-                    nodes = element["nodes"]
+                if element.get("type") == "way":
+                    nodes = element.get("nodes", [])
                     geometry = element.get("geometry", [])
 
-                    if len(nodes) != len(geometry):
+                    if not nodes or not geometry or len(nodes) != len(geometry):
                         incomplete_ways += 1
 
             print(f"Ways with incomplete geometry: {incomplete_ways}")
