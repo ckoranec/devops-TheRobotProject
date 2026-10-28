@@ -1,0 +1,8 @@
+# Generated previews are rebuilt locally; already tracked files need git rm --cached once.
+/campus-layers.geojson
+/route-preview.geojson
+/preview-manifest.json
+# Supplemental public snapshots stay outside code review.
+/.local-inputs/
+# Python generates bytecode locally.
+/__pycache__/

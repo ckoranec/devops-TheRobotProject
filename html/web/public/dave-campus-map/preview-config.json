@@ -1,0 +1,8 @@
+{
+  "map": "../../../../gmu_map.json",
+  "buildings": ".local-inputs/buildings.geojson",
+  "delivery": "delivery-points.geojson",
+  "start": [-77.30774144782609, 38.83143003478261],
+  "destination_id": "overcup-planned",
+  "max_snap_m": 30
+}

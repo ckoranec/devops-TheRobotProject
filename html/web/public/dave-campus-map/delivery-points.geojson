@@ -1,0 +1,17 @@
+{
+  "type": "FeatureCollection",
+  "features": [{
+    "type": "Feature",
+    "id": "overcup-planned",
+    "properties": {
+      "name": "Planned target: 4504 Overcup Court",
+      "source": "Project planning coordinate selected by David; entrance verification pending",
+      "data_mode": "planned",
+      "entrance_verified": false
+    },
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-77.295273904319, 38.830452983017]
+    }
+  }]
+}
