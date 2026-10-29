@@ -57,12 +57,17 @@ class Graph: #Full graph of nodes and edges
 def load_walk_graph(json_path: str):
     coords: dict[str, tuple[float, float]] = {} #JSON ID and coordinate position
     ways: list[tuple[str, str, list[str]]] = [] #
+    blocked = set()
 
     with open(json_path, encoding="utf-8") as fh:
         data = json.load(fh)
 
     for elem in data["elements"]:
         if elem["type"] == "node":
+            if "barrier" in elem.get("tags", {}):
+                tags = elem["tags"]
+                if tags.get("foot") == "no" or tags.get("access") == "private":
+                    blocked.add(str(elem["id"]))
             coords[str(elem["id"])] = (elem["lat"], elem["lon"])
         elif elem["type"] == "way":
             # Overpass "out geom" puts coordinates on the way, not on node elements.
@@ -90,6 +95,10 @@ def load_walk_graph(json_path: str):
             if membership.get(ref, 0) >= 2:
                 routing.add(ref)
 
+    for node_id in blocked:
+        if node_id in coords:
+            routing.add(node_id)
+
     graph = Graph()
     for ref in routing:
         lat, lon = coords[ref]
@@ -109,7 +118,7 @@ def load_walk_graph(json_path: str):
                 last = ref
                 shape = [(lat, lon)]
                 cost = 0.0
-    return graph
+    return graph, blocked
 
 
 def nearest_routing_node(
@@ -190,36 +199,9 @@ def dijkstra():
     parser.add_argument("goal_lon", type=float)
     parser.add_argument("--out", default="routejson.geojson")
     args = parser.parse_args()
-    
-    # Nodes belonging to the two east-side walkways of the Johnson Center
-    BLOCKED = {
-        "1237580671"
-        "9730235681",
-        "1350934701",
-        "1350934696",
-        "1237580714",
-        "2742432886",
-        "1342455406",
-        "1237580496",
-        "1237580412",
-        "2439656092",
-        "9730235680",
-        "2439656087",
-        "2742634013",
-        "2439656090",
-        "2742634012",
-        "2439656085",
-        "1350934701",
-        "1350934702",
-        "2439656096",
-        "2742432951",
-        "9730235687",
-        "576365822",
-    }
 
-    graph = load_walk_graph(args.json)
-    
-    graph.remove_nodes(BLOCKED)
+    graph, blocked = load_walk_graph(args.json)
+    graph.remove_nodes(blocked)
     
     start, start_snap = nearest_routing_node(graph, args.start_lat, args.start_lon)
     goal, goal_snap = nearest_routing_node(graph, args.goal_lat, args.goal_lon)
