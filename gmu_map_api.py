@@ -4,14 +4,13 @@ import requests
 import json
 import os
 import sys
-
+import time
 from datetime import datetime
 
 # servers to query
 servers = [
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
-    "https://overpass.maprva.org/api/interpreter"
+    "https://overpass.private.coffee/api/interpreter"
 ]
 
 # Bounding box manually selected in Overpass Turbo
@@ -40,108 +39,126 @@ out geom;
 
 headers = {"User-Agent": "MAXXRobotProject-MapPrototype/0.1"}
 
-success = False
-
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
 filename = f"gmu_map_{timestamp}.json"
 temp_filename = "gmu_map.tmp"
 
-for url in servers:
-    print(f"Trying server: {url}")
-# starts a loop to query the servers
-    try:
-        response = requests.post(
-            url,
-            data={"data": query},
-            headers=headers,
-            timeout=120
-        )
+def main():
+    print("Starting GMU map update...")
+    print("Preparing to contact Overpass servers...")
 
-        print(response.status_code)
+    success = False
+    max_attempts = 3
 
-        if response.ok:
-            data = response.json()
+    for attempt in range(max_attempts):
+        print(f"Starting attempt {attempt + 1} of {max_attempts}")
 
-            if "elements" not in data or "remark" in data:
-                print("Unexpected or incomplete API result.")
-                continue
-
-            for element in data["elements"]:
-                tags = element.get("tags", {})
-
-                if "note" in tags:
-                    print(element["id"], tags["note"])
-
-            way_count = 0
-
-            for element in data["elements"]:
-                if element.get("type") == "way":
-                    way_count += 1
-
-            if way_count == 0:
-                print("No ways found. Trying the next server.")
-                continue
-
-            print(f"Found {way_count} ways.")
-
-            incomplete_ways = 0
-
-            for element in data["elements"]:
-                if element.get("type") == "way":
-                    nodes = element.get("nodes", [])
-                    geometry = element.get("geometry", [])
-
-                    if not nodes or not geometry or len(nodes) != len(geometry):
-                        incomplete_ways += 1
-
-                    elif any(
-
-                            not isinstance(point, dict)
-
-                            or not isinstance(point.get("lat"), (int, float))
-
-                            or not isinstance(point.get("lon"), (int, float))
-
-                            for point in geometry
-
-                    ):
-                        incomplete_ways += 1
-                        print(f"Way {element['id']} contains invalid geometry coordinates.")
-
-            print(f"Ways with incomplete geometry: {incomplete_ways}")
-
-            if incomplete_ways > 0:
-                print("Map data is incomplete. Trying another server.")
-                continue
-
+        for url in servers:
+            print(f"Trying server: {url}")
+        # starts a loop to query the servers
             try:
-                with open(filename, "w", encoding="utf-8") as file:
-                    json.dump(data, file, indent=2)
+                response = requests.post(
+                    url,
+                    data={"data": query},
+                    headers=headers,
+                    timeout=120
+                )
 
-                with open(temp_filename, "w", encoding="utf-8") as file:
-                    json.dump(data, file, indent=2)
+                print(response.status_code)
 
-                os.replace(temp_filename, "gmu_map.json")
+                if response.ok:
+                    data = response.json()
 
-                print("Both map files saved successfully!")
-                success = True
-                break
+                    if "elements" not in data or "remark" in data:
+                        print("Unexpected or incomplete API result.")
+                        continue
 
-            except OSError as error:
-                print(f"Could not write {filename}: {error}")
-                break
+                    for element in data["elements"]:
+                        tags = element.get("tags", {})
 
-        else:
-            print(f"Server returned HTTP {response.status_code}. Trying next server.")
-            continue
+                        if "note" in tags:
+                            print(element["id"], tags["note"])
 
-    except (requests.exceptions.RequestException, ValueError) as error:
-        print(f"Request failed: {error}")
+                    way_count = 0
 
-if not success:
-    print("No usable map file was saved.")
-    sys.exit(1)
+                    for element in data["elements"]:
+                        if element.get("type") == "way":
+                            way_count += 1
 
-print("File location:", os.path.abspath(filename))
-print("File exists:", os.path.exists(filename))
+                    if way_count == 0:
+                        print("No ways found. Trying the next server.")
+                        continue
+
+                    print(f"Found {way_count} ways.")
+
+                    incomplete_ways = 0
+
+                    for element in data["elements"]:
+                        if element.get("type") == "way":
+                            nodes = element.get("nodes", [])
+                            geometry = element.get("geometry", [])
+
+                            if not nodes or not geometry or len(nodes) != len(geometry):
+                                incomplete_ways += 1
+
+                            elif any(
+
+                                    not isinstance(point, dict)
+
+                                    or not isinstance(point.get("lat"), (int, float))
+
+                                    or not isinstance(point.get("lon"), (int, float))
+
+                                    for point in geometry
+
+                            ):
+                                incomplete_ways += 1
+                                print(f"Way {element['id']} contains invalid geometry coordinates.")
+                                print("Invalid geometry:", geometry)
+                                print("Way tags:", element.get("tags", {}))
+
+                    print(f"Ways with incomplete geometry: {incomplete_ways}")
+
+                    if incomplete_ways > 0:
+                        print("Map data is incomplete. Trying another server.")
+                        continue
+
+                    try:
+                        with open(filename, "w", encoding="utf-8") as file:
+                            json.dump(data, file, indent=2)
+
+                        with open(temp_filename, "w", encoding="utf-8") as file:
+                            json.dump(data, file, indent=2)
+
+                        os.replace(temp_filename, "gmu_map.json")
+
+                        print("Both map files saved successfully!")
+                        success = True
+                        break
+
+                    except OSError as error:
+                        print(f"Could not write {filename}: {error}")
+                        break
+
+                else:
+                    print(f"Server returned HTTP {response.status_code}. Trying next server.")
+                    continue
+
+            except (requests.exceptions.RequestException, ValueError) as error:
+                print(f"Request failed: {error}")
+        if success:
+            break
+
+        if attempt < max_attempts - 1:
+            print("No useable map saved. Waiting 30 seconds before retrying...")
+            time.sleep(30)
+
+    if not success:
+        print("No usable map file was saved.")
+        sys.exit(1)
+
+    print("File location:", os.path.abspath(filename))
+    print("File exists:", os.path.exists(filename))
+
+main()
