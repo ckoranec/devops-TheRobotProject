@@ -19,7 +19,8 @@ west = -77.331347
 north = 38.836566
 east = -77.292338
 
-# Query highways within the selected area
+# Retrieve roads, pathways, barriers, and construction data within the GMU bounding box
+# Include geometry coordinates for use by the robot's pathfinding algorithm
 
 query = f"""
 [out:json][timeout:120];
@@ -35,12 +36,13 @@ query = f"""
 );
 out geom;
 """
-# coordinates of the area to query, area drawn manually in Overpass Turbo via bbox to include all of GMU's campus
+
 
 headers = {"User-Agent": "MAXXRobotProject-MapPrototype/0.1"}
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
+# Unique file name to prevent overwriting of previous json map
 filename = f"gmu_map_{timestamp}.json"
 temp_filename = "gmu_map.tmp"
 
@@ -48,15 +50,17 @@ def main():
     print("Starting GMU map update...")
     print("Preparing to contact Overpass servers...")
 
+    # Allow three rounds of requests to recover from temp failures
     success = False
     max_attempts = 3
 
+    # Retry server list until valid map data retrieved or attempts exhausted
     for attempt in range(max_attempts):
         print(f"Starting attempt {attempt + 1} of {max_attempts}")
 
         for url in servers:
             print(f"Trying server: {url}")
-        # starts a loop to query the servers
+
             try:
                 response = requests.post(
                     url,
@@ -64,7 +68,7 @@ def main():
                     headers=headers,
                     timeout=120
                 )
-
+                # Display HTTP response status before validating the returned map data
                 print(response.status_code)
 
                 if response.ok:
@@ -125,12 +129,16 @@ def main():
                         continue
 
                     try:
+                        # Save a timestamped copy to preserve previous map versions
                         with open(filename, "w", encoding="utf-8") as file:
                             json.dump(data, file, indent=2)
 
+                        # Write the updated map to a temp file before replacing the active map
                         with open(temp_filename, "w", encoding="utf-8") as file:
                             json.dump(data, file, indent=2)
 
+                        # Replace the active map only after the temp map is fully written
+                        # Keep the filename consistent for the robot's navigation algorithm
                         os.replace(temp_filename, "gmu_map.json")
 
                         print("Both map files saved successfully!")
