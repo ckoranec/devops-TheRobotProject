@@ -1,0 +1,5 @@
+# The map preview fingerprints these files byte-for-byte, so every checkout
+# must have identical line endings regardless of core.autocrlf.
+gmu_map.json text eol=lf
+backend/dijkstra_json.py text eol=lf
+html/web/public/dave-campus-map/** text eol=lf

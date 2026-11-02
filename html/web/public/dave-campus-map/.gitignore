@@ -1,8 +1,4 @@
-# Generated previews are rebuilt locally; already tracked files need git rm --cached once.
-/campus-layers.geojson
-/route-preview.geojson
-/preview-manifest.json
-# Supplemental public snapshots stay outside code review.
-/.local-inputs/
+# Generated previews and the building snapshot are committed so the overlay page
+# works on a fresh clone. Rebuild with build_preview.py --replace after map changes.
 # Python generates bytecode locally.
 /__pycache__/
