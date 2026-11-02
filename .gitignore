@@ -1,0 +1,4 @@
+# Ignore timestamped GMU map backups
+gmu_map_2*.json
+# Ignore untracked PyCharm configuration files
+.idea/
