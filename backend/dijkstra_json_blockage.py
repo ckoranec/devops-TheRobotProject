@@ -214,12 +214,15 @@ def dijkstra():
         )
 
     meters, nodes, line = result
+    speed = 6.7  # m/s
+    seconds = meters / speed
     with open(args.out, "w", encoding="utf-8") as fh:
         json.dump(line_to_geojson(line, meters, start, goal), fh)
     print(f"routing nodes: {len(graph.nodes)}") #Change to something else, maybe raise instead of print
     print(f"snapped start {start}  -> goal {goal} ")
     print(f"path nodes: {len(nodes)}")
     print(f"length: {meters:.1f} m")
+    print(f"time: {seconds:.1f} s ({seconds/60:.1f} min)")
     print(f"wrote {args.out}")
 
 
