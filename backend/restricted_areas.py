@@ -1,27 +1,44 @@
-"""Restricted area avoidance (starter).
+"""Restricted area avoidance (starter for the Restricted Area Avoidance card).
 
-Finds restricted areas in gmu_map.json and the routing nodes inside them, so the
-route finder can treat those nodes as blocked.
+Run from backend/:
+  python restricted_areas.py --export   writes html/data/restricted_areas.geojson from gmu_map.json
+  python restricted_areas.py            loads that file and shows which routing nodes each zone blocks
 
 Done:
-  - load_restricted_areas(): reads restricted areas and construction from the map
-  - point_in_polygon(): checks if a point is inside an area
-  - nodes_in_areas(): finds the graph nodes that fall inside any area
+  - find_candidate_zones(): pulls every access=no/private and construction feature
+    out of gmu_map.json as a starting list for the team to review
+  - export_zones() / load_zones(): the restricted areas file (GeoJSON, name + reason
+    + sample flag for each zone), so the overlay page can show it as its own layer
+  - point_in_polygon() and nodes_in_zones(): which routing nodes fall inside a zone
 
-TODO (Colin):
-  1. edges_crossing_areas(): a path can cut through an area without having a node
-     inside it. Check each edge's shape against each area.
-  2. route_violations(): given a finished route, list any areas it enters
-     (name + reason), so the system can alert instead of silently failing.
-  3. Use this in routing: block the nodes from nodes_in_areas() (and the edges
-     from step 1) before running dijkstra_equation().
-  4. Tests in backend/test_restricted_areas.py: a small fake map with one area,
-     and a route that must go around it.
-  5. Agree the list of restricted areas with the team (card's Plan item).
+TODO (Colin), matching the card's checklists:
+  Plan
+    [ ] Agree the zone list with the team. --export gives every candidate (20 right
+        now, mostly unnamed private roads). Trim html/data/restricted_areas.geojson
+        to the agreed zones, give each a name and reason, keep "sample": true for now.
+    [ ] Decide what an alert looks like (a clear message naming the zone and why).
+  Build
+    [ ] Avoidance: edges_crossing_zones(), then block those edges and the nodes from
+        nodes_in_zones() before dijkstra_equation(). Agree with Satchi where this goes.
+    [ ] Alert: check_endpoints() for a start/destination inside a zone, and a clear
+        alert naming the zone when no route exists without entering one.
+  Verify
+    [ ] 3 saved test routes: one that used to cross a zone and now goes around, one
+        with a destination inside a zone, one with no safe route.
+    [ ] Show each result on a map: zones in red, route on top.
+    [ ] route_violations(): script that confirms no test route touches any zone.
+    [ ] Campus policy rules, ticked against the test results.
+    [ ] Code review by a teammate, plus a short readme on adding or changing a zone.
 """
+import argparse
 import json
+from pathlib import Path
 
 from dijkstra_json_blockage import load_walk_graph
+
+ROOT = Path(__file__).resolve().parent.parent
+MAP_FILE = ROOT / "gmu_map.json"
+ZONES_FILE = ROOT / "html" / "data" / "restricted_areas.geojson"
 
 RESTRICTED_ACCESS = {"no", "private"} #access/foot values that mean the robot may not enter
 
@@ -36,9 +53,9 @@ def restriction_reason(tags: dict) -> str | None: #Why a feature is restricted, 
     return None
 
 
-def load_restricted_areas(json_path: str) -> list[dict]:
-    areas = []
-    with open(json_path, encoding="utf-8") as fh:
+def find_candidate_zones(map_path: Path = MAP_FILE) -> list[dict]:
+    zones = []
+    with open(map_path, encoding="utf-8") as fh:
         data = json.load(fh)
 
     for elem in data["elements"]:
@@ -50,15 +67,51 @@ def load_restricted_areas(json_path: str) -> list[dict]:
             continue
         points = [(pt["lat"], pt["lon"]) for pt in elem["geometry"]]
         closed = len(points) >= 4 and elem["nodes"][0] == elem["nodes"][-1] #Closed way = an area, open way = a line
-        areas.append({
+        zones.append({
             "id": str(elem["id"]),
             "name": tags.get("name", "Unnamed area"),
             "reason": reason,
+            "sample": True, #Stays true until the team agrees the list
             "closed": closed,
-            "points": points, #(lat, lon) outline
-            "nodes": [str(n) for n in elem["nodes"]], #Node IDs on the outline or line
+            "points": points, #(lat, lon) outline or line
+            "nodes": [str(n) for n in elem["nodes"]], #OSM node IDs on the outline or line
         })
-    return areas
+    return zones
+
+
+def export_zones(zones: list[dict], out_path: Path = ZONES_FILE) -> None:
+    features = []
+    for zone in zones:
+        coords = [[lon, lat] for lat, lon in zone["points"]] #GeoJSON is [lon, lat]
+        geometry = {"type": "Polygon", "coordinates": [coords]} if zone["closed"] else {"type": "LineString", "coordinates": coords}
+        features.append({
+            "type": "Feature",
+            "properties": {k: zone[k] for k in ("id", "name", "reason", "sample", "nodes")},
+            "geometry": geometry,
+        })
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(out_path, "w", encoding="utf-8") as fh:
+        json.dump({"type": "FeatureCollection", "features": features}, fh, indent=2)
+
+
+def load_zones(zones_path: Path = ZONES_FILE) -> list[dict]:
+    with open(zones_path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    zones = []
+    for feature in data["features"]:
+        props = feature["properties"]
+        geometry = feature["geometry"]
+        coords = geometry["coordinates"][0] if geometry["type"] == "Polygon" else geometry["coordinates"]
+        zones.append({
+            "id": props["id"],
+            "name": props.get("name", "Unnamed area"),
+            "reason": props.get("reason", "unknown"),
+            "sample": props.get("sample", True),
+            "closed": geometry["type"] == "Polygon",
+            "points": [(lat, lon) for lon, lat in coords],
+            "nodes": props.get("nodes", []),
+        })
+    return zones
 
 
 def point_in_polygon(lat: float, lon: float, polygon: list[tuple[float, float]]) -> bool:
@@ -76,40 +129,61 @@ def point_in_polygon(lat: float, lon: float, polygon: list[tuple[float, float]])
     return inside
 
 
-def nodes_in_areas(graph, areas: list[dict]) -> dict[str, dict]:
-    #Map of node ID -> the area that blocks it
+def nodes_in_zones(graph, zones: list[dict]) -> dict[str, dict]:
+    #Map of node ID -> the zone that blocks it
     blocked: dict[str, dict] = {}
-    for area in areas:
-        if area["closed"]:
+    for zone in zones:
+        if zone["closed"]:
             for node_id, (lat, lon) in graph.nodes.items():
-                if point_in_polygon(lat, lon, area["points"]):
-                    blocked[node_id] = area
-        #Open restricted ways (e.g. a private path) block their own nodes
-        for node_id in area["nodes"]:
+                if point_in_polygon(lat, lon, zone["points"]):
+                    blocked[node_id] = zone
+        #Restricted lines (e.g. a private road) block their own nodes
+        for node_id in zone["nodes"]:
             if node_id in graph.nodes:
-                blocked[node_id] = area
+                blocked[node_id] = zone
     return blocked
 
 
-def edges_crossing_areas(graph, areas: list[dict]):
-    #TODO (Colin): return edges whose shape passes through an area even though
+def edges_crossing_zones(graph, zones: list[dict]):
+    #TODO (Colin): return edges whose shape passes through a zone even though
     #neither end node is inside it. Hint: check each point in edge.coords with
     #point_in_polygon(), then think about whether that is enough.
     raise NotImplementedError
 
 
-def route_violations(line: list[tuple[float, float]], areas: list[dict]) -> list[dict]:
-    #TODO (Colin): return the areas a finished route enters, so the system can
-    #print a clear alert like "Route enters <name> (<reason>)".
+def check_endpoints(start: tuple[float, float], goal: tuple[float, float], zones: list[dict]) -> list[str]:
+    #TODO (Colin): return alert messages if the start or destination is inside a
+    #zone, e.g. "Destination is inside Student Apartment Construction Zone (construction)".
     raise NotImplementedError
 
 
-if __name__ == "__main__":
-    graph, _barriers = load_walk_graph("../gmu_map.json")
-    areas = load_restricted_areas("../gmu_map.json")
-    blocked = nodes_in_areas(graph, areas)
-    print(f"restricted areas: {len(areas)} ({sum(a['closed'] for a in areas)} closed, {sum(not a['closed'] for a in areas)} lines)")
+def route_violations(line: list[tuple[float, float]], zones: list[dict]) -> list[dict]:
+    #TODO (Colin): return the zones a finished route touches. Use this in the
+    #Verify tests to prove no route ever enters a zone.
+    raise NotImplementedError
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Restricted area avoidance")
+    parser.add_argument("--export", action="store_true", help="write candidate zones from gmu_map.json to the zones file")
+    args = parser.parse_args()
+
+    if args.export:
+        zones = find_candidate_zones()
+        export_zones(zones)
+        print(f"wrote {len(zones)} candidate zones to {ZONES_FILE}")
+        return
+
+    graph, _barriers = load_walk_graph(str(MAP_FILE))
+    zones = load_zones()
+    blocked = nodes_in_zones(graph, zones)
+    print(f"zones: {len(zones)} ({sum(z['closed'] for z in zones)} areas, {sum(not z['closed'] for z in zones)} lines)")
     print(f"routing nodes blocked: {len(blocked)} of {len(graph.nodes)}")
-    for area in areas:
-        count = sum(1 for a in blocked.values() if a is area)
-        print(f"  {area['id']:>12}  {area['reason']:<14} {count:>3} nodes  {area['name']}")
+    for zone in zones:
+        count = sum(1 for z in blocked.values() if z is zone)
+        sample = " (sample)" if zone["sample"] else ""
+        print(f"  {zone['id']:>12}  {zone['reason']:<14} {count:>3} nodes  {zone['name']}{sample}")
+
+
+if __name__ == "__main__":
+    main()
