@@ -9,9 +9,10 @@ from datetime import datetime
 
 # servers to query
 servers = [
+    "https://overpass.osm.jp/api/interpreter",
     "https://overpass-api.de/api/interpreter",
     "https://overpass.private.coffee/api/interpreter"
-]
+       ]
 
 # Bounding box manually selected in Overpass Turbo
 south = 38.823527
@@ -42,9 +43,13 @@ headers = {"User-Agent": "MAXXRobotProject-MapPrototype/0.1"}
 
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-# Unique file name to prevent overwriting of previous json map
-filename = f"gmu_map_{timestamp}.json"
-temp_filename = "gmu_map.tmp"
+# Directory containing this Python script
+HERE = os.path.dirname(os.path.abspath(__file__))
+
+# Map file locations
+filename = os.path.join(HERE, f"gmu_map_{timestamp}.json")
+temp_filename = os.path.join(HERE, "gmu_map.tmp")
+active_filename = os.path.join(HERE, "gmu_map.json")
 
 def main():
     print("Starting GMU map update...")
@@ -139,15 +144,15 @@ def main():
 
                         # Replace the active map only after the temp map is fully written
                         # Keep the filename consistent for the robot's navigation algorithm
-                        os.replace(temp_filename, "gmu_map.json")
+                        os.replace(temp_filename, active_filename)
 
                         print("Both map files saved successfully!")
                         success = True
                         break
 
                     except OSError as error:
-                        print(f"Could not write {filename}: {error}")
-                        break
+                        print(f"Failed to save map data: {error}")
+                        sys.exit(1)
 
                 else:
                     print(f"Server returned HTTP {response.status_code}. Trying next server.")
@@ -169,4 +174,5 @@ def main():
     print("File location:", os.path.abspath(filename))
     print("File exists:", os.path.exists(filename))
 
-main()
+if __name__ == "__main__":
+    main()
