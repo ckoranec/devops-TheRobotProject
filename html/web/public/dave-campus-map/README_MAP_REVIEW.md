@@ -88,3 +88,16 @@ world.html interface was part of the removed kit and is not provided here.
 Review only the small source/config/test/README changes and explicit obsolete
 file removals. Personal ZIPs, teaching copies, PDFs and IDE/venv files are not
 part of the submission. Preserve shared history; do not force-push it.
+
+### Overlay
+
+to run the page it requires tje previous:
+```powershell
+python -m http.server 8004 --bind 127.0.0.1
+```
+
+To load the page, the URL will depend on what directory the above script is run in terminal.
+Assuming the script is ran from the root directory of the project, the url will be as follows:
+http://127.0.0.1:5500/html/web/public/dave-campus-map/gis-layers.html
+
+data is swaped in automatically when gmu_map.JSON is updated every 12 Hours. 
