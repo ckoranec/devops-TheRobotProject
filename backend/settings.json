@@ -1,0 +1,6 @@
+{
+  "sender": "mailto:Maxx.Byte.Notifications@gmail.com",
+  "recipients": ["put your email here"],
+  "smtp_host": "smtp.gmail.com",
+  "smtp_port": 465
+}
