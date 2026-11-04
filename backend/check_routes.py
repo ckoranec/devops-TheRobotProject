@@ -1,13 +1,15 @@
+"""Check that each delivery location is in the map data and reachable from the origin.
+"""
 import argparse
 import copy
 import csv
+import hashlib
 import json
 import re
 from datetime import date
 from pathlib import Path
  
 from dijkstra_json_blockage import (
-    BLOCKED_NODES,
     dijkstra_equation,
     line_to_geojson,
     load_walk_graph,
@@ -83,10 +85,10 @@ def main():
     ap.add_argument("--max-snap", type=float, default=30.0, help="metres (default 30)")
     stamp = date.today().strftime("%d%b%y").upper() 
     ap.add_argument("--out", default=f"results/results_{stamp}.csv")
+    ap.add_argument("--geojson-dir", help="optional folder to save each route as GeoJSON")
     args = ap.parse_args()
  
-    full = load_walk_graph(args.map)  # map is loaded once
-    blocked_ids = set(BLOCKED_NODES)
+    full, blocked_ids = load_walk_graph(args.map)  # map is loaded once; blocked = barrier nodes tagged in the map
     blocked = copy.deepcopy(full)
     blocked.remove_nodes(blocked_ids)
  
@@ -132,8 +134,13 @@ def main():
     summary = f"data file: {args.map} | delivered {delivered}/{tested} ({pct:.0f}%)"
     print(summary)
  
+    map_bytes = Path(args.map).read_bytes()
+    osm = json.loads(map_bytes).get("osm3s", {})
     meta = {
         "map file": args.map,
+        "map data timestamp": osm.get("timestamp_osm_base", "unknown"),  # when OSM produced this data
+        "map sha256": hashlib.sha256(map_bytes).hexdigest(),  # exact version, so the run can be repeated
+        "locations file": args.locations,
         "run date": date.today().isoformat(),
         "origin": args.origin,
         "max snap (m)": args.max_snap,
