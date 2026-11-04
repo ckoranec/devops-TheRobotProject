@@ -4,6 +4,82 @@
     {
       "type": "Feature",
       "properties": {
+        "id": "1241211507",
+        "name": "lift_gate",
+        "reason": "foot=no",
+        "sample": true,
+        "nodes": [
+          "1241211507"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.3025095,
+          38.827217
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "1241211607",
+        "name": "lift_gate",
+        "reason": "foot=no",
+        "sample": true,
+        "nodes": [
+          "1241211607"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.3020173,
+          38.828174
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "1350934516",
+        "name": "lift_gate",
+        "reason": "access=private",
+        "sample": true,
+        "nodes": [
+          "1350934516"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.3028141,
+          38.8267966
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "id": "2444599208",
+        "name": "lift_gate",
+        "reason": "foot=no",
+        "sample": true,
+        "nodes": [
+          "2444599208"
+        ]
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -77.3102816,
+          38.8300151
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
         "id": "8804765",
         "name": "Unnamed area",
         "reason": "access=private",
@@ -221,70 +297,9 @@
     {
       "type": "Feature",
       "properties": {
-        "id": "389276955",
-        "name": "Unnamed area",
-        "reason": "access=no",
-        "sample": true,
-        "nodes": [
-          "3581869396",
-          "3924378181",
-          "11033561014",
-          "3924378176",
-          "3924378177",
-          "3924378178",
-          "3924378179",
-          "3924378182",
-          "3924378180"
-        ]
-      },
-      "geometry": {
-        "type": "LineString",
-        "coordinates": [
-          [
-            -77.3105781,
-            38.8357628
-          ],
-          [
-            -77.3105216,
-            38.8357274
-          ],
-          [
-            -77.3105176,
-            38.8357185
-          ],
-          [
-            -77.3104989,
-            38.8355309
-          ],
-          [
-            -77.3104795,
-            38.8354982
-          ],
-          [
-            -77.3104505,
-            38.8354806
-          ],
-          [
-            -77.310394,
-            38.8354768
-          ],
-          [
-            -77.3103117,
-            38.8354872
-          ],
-          [
-            -77.3102745,
-            38.8354919
-          ]
-        ]
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
         "id": "675575295",
         "name": "Unnamed area",
-        "reason": "access=no",
+        "reason": "foot=no",
         "sample": true,
         "nodes": [
           "6247739188",
@@ -1187,7 +1202,7 @@
       "properties": {
         "id": "963385266",
         "name": "Unnamed area",
-        "reason": "access=no",
+        "reason": "foot=private",
         "sample": true,
         "nodes": [
           "8395727898",

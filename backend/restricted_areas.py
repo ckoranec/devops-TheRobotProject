@@ -41,15 +41,19 @@ MAP_FILE = ROOT / "gmu_map.json"
 ZONES_FILE = ROOT / "html" / "data" / "restricted_areas.geojson"
 
 RESTRICTED_ACCESS = {"no", "private"} #access/foot values that mean the robot may not enter
+FOOT_ALLOWED = {"yes", "designated", "permissive"} #foot values that let pedestrians through even when access says no
 
 
 def restriction_reason(tags: dict) -> str | None: #Why a feature is restricted, or None if it isn't
-    if tags.get("access") in RESTRICTED_ACCESS:
-        return f"access={tags['access']}"
-    if tags.get("foot") in RESTRICTED_ACCESS:
-        return f"foot={tags['foot']}"
     if tags.get("landuse") == "construction" or "construction" in tags:
         return "construction"
+    #The robot moves like a pedestrian, so foot overrides access (access=no usually means no cars)
+    if tags.get("foot") in FOOT_ALLOWED:
+        return None
+    if tags.get("foot") in RESTRICTED_ACCESS:
+        return f"foot={tags['foot']}"
+    if tags.get("access") in RESTRICTED_ACCESS:
+        return f"access={tags['access']}"
     return None
 
 
@@ -59,11 +63,22 @@ def find_candidate_zones(map_path: Path = MAP_FILE) -> list[dict]:
         data = json.load(fh)
 
     for elem in data["elements"]:
-        if elem["type"] != "way" or "geometry" not in elem:
-            continue
         tags = elem.get("tags", {})
         reason = restriction_reason(tags)
         if reason is None:
+            continue
+        if elem["type"] == "node": #A single blocked point, e.g. a lift gate with foot=no
+            zones.append({
+                "id": str(elem["id"]),
+                "name": tags.get("name", tags.get("barrier", "Unnamed point")),
+                "reason": reason,
+                "sample": True,
+                "closed": False,
+                "points": [(elem["lat"], elem["lon"])],
+                "nodes": [str(elem["id"])],
+            })
+            continue
+        if elem["type"] != "way" or "geometry" not in elem:
             continue
         points = [(pt["lat"], pt["lon"]) for pt in elem["geometry"]]
         closed = len(points) >= 4 and elem["nodes"][0] == elem["nodes"][-1] #Closed way = an area, open way = a line
@@ -83,7 +98,12 @@ def export_zones(zones: list[dict], out_path: Path = ZONES_FILE) -> None:
     features = []
     for zone in zones:
         coords = [[lon, lat] for lat, lon in zone["points"]] #GeoJSON is [lon, lat]
-        geometry = {"type": "Polygon", "coordinates": [coords]} if zone["closed"] else {"type": "LineString", "coordinates": coords}
+        if zone["closed"]:
+            geometry = {"type": "Polygon", "coordinates": [coords]}
+        elif len(coords) == 1:
+            geometry = {"type": "Point", "coordinates": coords[0]}
+        else:
+            geometry = {"type": "LineString", "coordinates": coords}
         features.append({
             "type": "Feature",
             "properties": {k: zone[k] for k in ("id", "name", "reason", "sample", "nodes")},
@@ -101,7 +121,12 @@ def load_zones(zones_path: Path = ZONES_FILE) -> list[dict]:
     for feature in data["features"]:
         props = feature["properties"]
         geometry = feature["geometry"]
-        coords = geometry["coordinates"][0] if geometry["type"] == "Polygon" else geometry["coordinates"]
+        if geometry["type"] == "Polygon":
+            coords = geometry["coordinates"][0]
+        elif geometry["type"] == "Point":
+            coords = [geometry["coordinates"]]
+        else:
+            coords = geometry["coordinates"]
         zones.append({
             "id": props["id"],
             "name": props.get("name", "Unnamed area"),
@@ -177,7 +202,9 @@ def main():
     graph, _barriers = load_walk_graph(str(MAP_FILE))
     zones = load_zones()
     blocked = nodes_in_zones(graph, zones)
-    print(f"zones: {len(zones)} ({sum(z['closed'] for z in zones)} areas, {sum(not z['closed'] for z in zones)} lines)")
+    points = sum(len(z["points"]) == 1 for z in zones)
+    areas = sum(z["closed"] for z in zones)
+    print(f"zones: {len(zones)} ({areas} areas, {len(zones) - areas - points} lines, {points} points)")
     print(f"routing nodes blocked: {len(blocked)} of {len(graph.nodes)}")
     for zone in zones:
         count = sum(1 for z in blocked.values() if z is zone)
