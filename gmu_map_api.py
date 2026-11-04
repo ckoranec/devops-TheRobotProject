@@ -9,9 +9,9 @@ from datetime import datetime
 
 # servers to query
 servers = [
-    "https://overpass.osm.jp/api/interpreter",
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter"
+    "https://overpass.private.coffee/api/interpreter",
+    "https://lz4.overpass-api.de/api/interpreter"
        ]
 
 # Bounding box manually selected in Overpass Turbo
@@ -32,8 +32,8 @@ query = f"""
     node["construction"]({south},{west},{north},{east});
     way["construction"]({south},{west},{north},{east});
     way["landuse"="construction"]({south},{west},{north},{east});
-    node["access"="no"]({south},{west},{north},{east});
-    way["access"="no"]({south},{west},{north},{east});
+    node["access"~"^(private|no)$"]({south},{west},{north},{east});
+    way["access"~"^(private|no)$"]({south},{west},{north},{east});
 );
 out geom;
 """
@@ -132,7 +132,37 @@ def main():
                     if incomplete_ways > 0:
                         print("Map data is incomplete. Trying another server.")
                         continue
+                    # count restricted elements in this map
+                    restricted_count = 0
 
+                    for element in data["elements"]:
+
+                        tags = element.get("tags", {})
+
+                        if tags.get("access") in {"private", "no"}:
+                            element["robot_restricted"] = True
+
+                            element["restriction_reason"] = (
+                                f"OSM access={tags.get('access')}"
+                            )
+
+                            restricted_count += 1
+
+                            name = (
+                                    tags.get("name")
+                                    or tags.get("description")
+                                    or tags.get("ref")
+                                    or tags.get("highway")
+                                    or tags.get("barrier")
+                                    or "Unnamed"
+                            )
+
+                            print(
+                                f"Restricted {element['type']} "
+                                f"{element['id']}: {name}"
+                            )
+
+                    print(f"Total restricted elements: {restricted_count}")
                     try:
                         # Save a timestamped copy to preserve previous map versions
                         with open(filename, "w", encoding="utf-8") as file:
@@ -160,6 +190,7 @@ def main():
 
             except (requests.exceptions.RequestException, ValueError) as error:
                 print(f"Request failed: {error}")
+
         if success:
             break
 
