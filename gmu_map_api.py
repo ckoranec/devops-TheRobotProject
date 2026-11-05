@@ -1,11 +1,12 @@
-# importing libraries
-
 import requests
 import json
 import os
 import sys
 import time
 from datetime import datetime
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), "backend"))
+from backend.restricted_areas import restriction_reason
 
 # servers to query
 servers = [
@@ -34,6 +35,8 @@ query = f"""
     way["landuse"="construction"]({south},{west},{north},{east});
     node["access"~"^(private|no)$"]({south},{west},{north},{east});
     way["access"~"^(private|no)$"]({south},{west},{north},{east});
+    node["foot"="no"]({south},{west},{north},{east});
+    way["foot"="no"]({south},{west},{north},{east});
 );
 out geom;
 """
@@ -132,19 +135,18 @@ def main():
                     if incomplete_ways > 0:
                         print("Map data is incomplete. Trying another server.")
                         continue
-                    # count restricted elements in this map
+
+                    # Count and annotate restricted elements using Coty's shared rules
                     restricted_count = 0
 
                     for element in data["elements"]:
-
                         tags = element.get("tags", {})
 
-                        if tags.get("access") in {"private", "no"}:
-                            element["robot_restricted"] = True
+                        reason = restriction_reason(tags)
 
-                            element["restriction_reason"] = (
-                                f"OSM access={tags.get('access')}"
-                            )
+                        if reason is not None:
+                            element["robot_restricted"] = True
+                            element["restriction_reason"] = reason
 
                             restricted_count += 1
 
@@ -154,15 +156,17 @@ def main():
                                     or tags.get("ref")
                                     or tags.get("highway")
                                     or tags.get("barrier")
+                                    or tags.get("landuse")
                                     or "Unnamed"
                             )
 
                             print(
                                 f"Restricted {element['type']} "
-                                f"{element['id']}: {name}"
+                                f"{element['id']}: {name} ({reason})"
                             )
 
                     print(f"Total restricted elements: {restricted_count}")
+
                     try:
                         # Save a timestamped copy to preserve previous map versions
                         with open(filename, "w", encoding="utf-8") as file:
