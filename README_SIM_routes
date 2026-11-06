@@ -1,0 +1,22 @@
+# Path Simulation & Routing Script
+
+A Python utility that calculates the shortest path between a start and goal geographic coordinate on a custom walking graph (avoiding blocked nodes) and simulates time-stamped position updates along that path at a given speed.
+
+## Features
+
+- **Graph Routing:** Loads a custom JSON map graph, removes blocked/inaccessible nodes, and snaps geographic coordinates to the nearest routing nodes.
+- **Shortest Path Calculation:** Computes the optimal route using Dijkstra's algorithm (`dijkstra_equation`).
+- **Position Simulation:** Generates interpolated position updates (`lat`, `lon`, `t`) at a configurable time interval and constant speed (default: 15 mph / ~6.7 m/s).
+- **JSON Export:** Dumps simulation metadata, total distance, total travel time, and the complete coordinate timeline into a structured JSON file.
+
+
+## Prerequisites
+
+Ensure you have Python 3.8+ installed along with the required local module:
+- `dijkstra_json_blockage`
+
+## Run the script
+run the script in the root directory with python .\backend\SIM_route.py
+you will be prompted to enter the start lat, start lon, goal lat, and goal lon
+script will return distance and time traveled
+script will write each position at time t in the position.JSON file in root directory 
