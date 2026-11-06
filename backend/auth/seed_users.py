@@ -1,23 +1,17 @@
 import os
 import sqlite3
 from faker import Faker
-from flask import Flask
-from flask_bcrypt import Bcrypt
+try:
+    from .password_hashing import hash_password
+except ImportError:
+    from password_hashing import hash_password
 
-# Re-use your configuration
-app = Flask(__name__)
-bcrypt = Bcrypt(app)
 # Kept next to this script so it lands in the same place wherever you run it from
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
 fake = Faker()
 
 TEST_USERNAME = "staff_test"
 TEST_PASSWORD = "Robot-Test-2026!"
-
-
-def hash_password(password: str) -> str:
-    return bcrypt.generate_password_hash(password).decode("utf-8")
-
 
 def seed_database(num_users=20):
     """Generates fake users and inserts them into the SQLite table."""
