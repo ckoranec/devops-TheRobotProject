@@ -38,7 +38,7 @@ def setup_2fa(user_id):
 
 def verify_2fa(user_id, user_input_code):
     conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor(
+    cursor = conn.cursor()
 
     cursor.execute("SELECT totp_secret FROM users WHERE id = ?", (user_id,))
     result = cursor.fetchone()
