@@ -1,3 +1,4 @@
+import os
 import sqlite3
 from faker import Faker
 from flask import Flask
@@ -6,8 +7,12 @@ from flask_bcrypt import Bcrypt
 # Re-use your configuration
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
-DB_FILE = "users.db"
+# Kept next to this script so it lands in the same place wherever you run it from
+DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "users.db")
 fake = Faker()
+
+TEST_USERNAME = "staff_test"
+TEST_PASSWORD = "Robot-Test-2026!"
 
 
 def hash_password(password: str) -> str:
@@ -32,6 +37,14 @@ def seed_database(num_users=20):
             )
         """
         )
+
+        # One fixed test user so everyone (and Card 3's attack script) can log in the same way.
+        # Simulated account in a local-only database: this is not a real secret.
+        cursor.execute(
+            "INSERT OR IGNORE INTO users (username, password_hash) VALUES (?, ?)",
+            (TEST_USERNAME, hash_password(TEST_PASSWORD)),
+        )
+        print(f"Test user     | Username: {TEST_USERNAME:<15} | Password: {TEST_PASSWORD}")
 
         for _ in range(num_users):
             # Generate a realistic fake username and password

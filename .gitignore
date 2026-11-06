@@ -1,4 +1,8 @@
 # Ignore timestamped GMU map backups
 gmu_map_2*.json
 # Ignore untracked PyCharm configuration files
-.idea/
+.idea/# Local databases are never committed (each intern seeds their own)
+*.db
+# Python caches and virtual environments
+__pycache__/
+.venv/

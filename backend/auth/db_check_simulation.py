@@ -6,7 +6,8 @@ from flask_bcrypt import Bcrypt
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
 
-DB_FILE = "users.db"
+# Separate throwaway file: this script deletes it on every run, so it must not touch users.db
+DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "test_users.db")
 
 def init_db():
     """Creates the SQLite database and the users table if they don't exist."""
