@@ -222,6 +222,3 @@ VERIFY_HTML = '''
 </html>
 '''
 
-if __name__ == '__main__':
-    init_dbs()
-    app.run(debug=True, port=5000)
