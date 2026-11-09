@@ -1,5 +1,6 @@
 import os
 import sqlite3
+from datetime import datetime, timedelta
 from faker import Faker
 try:
     from .password_hashing import hash_password
@@ -12,6 +13,10 @@ fake = Faker()
 
 TEST_USERNAME = "staff_test"
 TEST_PASSWORD = "Robot-Test-2026!"
+
+def get_password_set_at():
+    password_set_at = datetime.now()
+    return password_set_at
 
 def seed_database(num_users=20):
     """Generates fake users and inserts them into the SQLite table."""
@@ -66,4 +71,5 @@ def seed_database(num_users=20):
 if __name__ == "__main__":
     # Generate 15 simulation profiles by default
     seed_database(15)
+
 
