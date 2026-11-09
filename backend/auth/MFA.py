@@ -171,7 +171,7 @@ def dashboard():
         
     return """
         <h2>Welcome to your Secure Dashboard!</h2>
-        <p>You have successfully passed both password authentication and 2FA. change routing in Verify-code page to home page</p>
+        <p>You have successfully passed both password authentication and 2FA. Change routing in Verify-code page to next needed page</p>
         <a href="/logout">Logout</a>
     """
 
