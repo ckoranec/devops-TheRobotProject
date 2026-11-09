@@ -58,6 +58,16 @@ def has_totp_secret(user_id):
     conn_totp.close()
     return result is not None and result[0] != ""
 
+def clear_totp_db():
+    """Drops and re-initializes the TOTP table to clear all stored secrets."""
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DROP TABLE IF EXISTS totp_secrets")
+    conn.commit()
+    conn.close()
+    init_totp_db()
+    print("TOTP database cleared and re-initialized.")
+
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
@@ -170,6 +180,17 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
+@app.route('/')
+def index():
+    return render_template_string(LOGIN_HTML, error=None)
+
+
+@app.route('/reset-2fa')
+def reset_2fa():
+    clear_totp_db()
+    session.clear()
+    return "TOTP database has been cleared! <a href='/'>Go back to login</a>"
+
 LOGIN_HTML = '''
 <!DOCTYPE html>
 <html>
@@ -224,4 +245,4 @@ VERIFY_HTML = '''
 
 if __name__ == '__main__':
     init_totp_db()
-    app.run(debug=True, port=5000)
+    app.run(host="127.0.0.1", port=5051, debug=True)
