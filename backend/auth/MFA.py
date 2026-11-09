@@ -7,7 +7,7 @@ import time
 
 import pyotp
 import qrcode
-from flask import Flask, redirect, render_template_string, request, session, url_for
+from flask import Flask, redirect, render_template_string, request, session, url_for, abort
 
 from seed_users import DB_FILE
 from campus_login import find_identity
@@ -84,7 +84,7 @@ def login():
 def setup_2fa_page():
     # Prevent direct URL skipping
     if 'pending_user_id' not in session:
-        return redirect(url_for('index'))
+        return abort(404)
 
     user_id = session['pending_user_id']
 
@@ -96,7 +96,7 @@ def setup_2fa_page():
     conn_user.close()
     
     if not result:
-        return redirect(url_for('index'))
+        return abort(404)
         
     username = result[0]
     
@@ -136,7 +136,7 @@ def setup_2fa_page():
 def verify_code_page():
     # Prevent direct URL skipping
     if 'pending_user_id' not in session:
-        return redirect(url_for('index'))
+        return abort(404)
 
     if request.method == 'POST':
         user_input_code = request.form.get('code')
@@ -157,7 +157,7 @@ def verify_code_page():
 def dashboard():
     # Protected route checking for official session key
     if 'user_id' not in session:
-        return redirect(url_for('index'))
+        return abort(404)
         
     return """
         <h2>Welcome to your Secure Dashboard!</h2>
@@ -222,3 +222,6 @@ VERIFY_HTML = '''
 </html>
 '''
 
+if __name__ == '__main__':
+    init_totp_db()
+    app.run(debug=True, port=5000)
