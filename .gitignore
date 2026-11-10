@@ -6,3 +6,16 @@ gmu_map_2*.json
 # Python caches and virtual environments
 __pycache__/
 .venv/
+
+# 2026-11-10 — David Noyes: restore local SSO secret and development exclusions.
+.env
+.env.*
+!.env.example
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.idea/
+__pycache__/
+.pytest_cache/
+.venv/
