@@ -213,36 +213,228 @@ LOGIN_HTML = '''
  
 SETUP_HTML = '''
 <!DOCTYPE html>
-<html>
-<head><title>Setup 2FA</title></head>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Setup 2FA — MaxBytes Campus</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Arial, sans-serif;
+            background: #f3f5f7;
+            color: #17212b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        main {
+            width: 100%;
+            max-width: 480px;
+            padding: 32px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            box-sizing: border-box;
+            text-align: center;
+        }
+        h2 {
+            margin-top: 0;
+            color: #075c45;
+        }
+        p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+            text-align: left;
+        }
+        .qr-container {
+            margin: 16px 0;
+            padding: 12px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            display: inline-block;
+        }
+        img {
+            max-width: 180px;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+        code {
+            background: #eef2f6;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #333;
+            word-break: break-all;
+        }
+        input[type="text"] {
+            box-sizing: border-box;
+            width: 100%;
+            margin-top: 8px;
+            padding: 12px;
+            border: 1px solid #aab5bf;
+            border-radius: 6px;
+            font-size: 18px;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px 18px;
+            border: 0;
+            border-radius: 6px;
+            background: #075c45;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #054835;
+        }
+        .error {
+            color: #a01818;
+            background: #fdf2f2;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-bottom: 16px;
+            text-align: center;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #d5dce2;
+            margin: 20px 0;
+        }
+    </style>
+</head>
 <body>
-    <h2>Set Up Two-Factor Authentication</h2>
-    <p>1. Scan this QR code with Google Authenticator:</p>
-    <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code">
-    <p><strong>Manual Code:</strong> <code>{{ secret }}</code></p>
-    <hr>
-    <p>2. Enter the 6-digit code from your app to complete setup:</p>
-    {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
-    <form method="POST">
-        <input type="text" name="code" placeholder="123456" required autocomplete="one-time-code">
-        <button type="submit">Verify & Complete</button>
-    </form>
+    <main>
+        <h2>Set Up Two-Factor Authentication</h2>
+        <p><strong>Step 1:</strong> Scan this QR code with Google Authenticator or your authenticator app:</p>
+        
+        <div class="qr-container">
+            <img src="data:image/png;base64,{{ qr_base64 }}" alt="2FA QR Code">
+        </div>
+        
+        <p style="text-align: center; font-size: 13px; margin-top: 4px;">
+            Can't scan? Use manual code: <br><br><code>{{ secret }}</code>
+        </p>
+        
+        <hr>
+        
+        <p><strong>Step 2:</strong> Enter the 6-digit code from your app to complete setup:</p>
+        
+        {% if error %}
+            <div class="error" role="alert">{{ error }}</div>
+        {% endif %}
+        
+        <form method="POST">
+            <input type="text" name="code" placeholder="123456" maxlength="6" required autocomplete="one-time-code">
+            <button type="submit">Verify & Complete</button>
+        </form>
+    </main>
 </body>
 </html>
 '''
 
 VERIFY_HTML = '''
 <!DOCTYPE html>
-<html>
-<head><title>Verify Code</title></head>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Verify Code</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 24px;
+            font-family: Arial, sans-serif;
+            background: #f3f5f7;
+            color: #17212b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        main {
+            width: 100%;
+            max-width: 420px;
+            padding: 32px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            box-sizing: border-box;
+            text-align: center;
+        }
+        h2 {
+            margin-top: 0;
+            color: #075c45;
+        }
+        p {
+            color: #555;
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+        input[type="text"] {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #aab5bf;
+            border-radius: 6px;
+            font-size: 20px;
+            text-align: center;
+            letter-spacing: 4px;
+        }
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 12px 18px;
+            border: 0;
+            border-radius: 6px;
+            background: #075c45;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #054835;
+        }
+        .error {
+            color: #a01818;
+            background: #fdf2f2;
+            padding: 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
 <body>
-    <h2>Two-Factor Authentication</h2>
-    {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
-    <form method="POST">
-        <p>Enter your 6-digit authenticator code:</p>
-        <input type="text" name="code" placeholder="123456" required autocomplete="one-time-code">
-        <button type="submit">Verify</button>
-    </form>
+    <main>
+        <h2>Two-Factor Authentication</h2>
+        <p>Enter your 6-digit authenticator code to proceed.</p>
+        
+        {% if error %}
+            <div class="error" role="alert">{{ error }}</div>
+        {% endif %}
+        
+        <form method="POST">
+            <input type="text" name="code" placeholder="123456" maxlength="6" required autocomplete="one-time-code">
+            <button type="submit">Verify Code</button>
+        </form>
+    </main>
 </body>
 </html>
 '''
