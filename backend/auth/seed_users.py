@@ -1,7 +1,9 @@
+
 import os
 import sqlite3
 from datetime import datetime, timedelta
 from faker import Faker
+
 try:
     from .password_hashing import hash_password
 except ImportError:
@@ -14,9 +16,11 @@ fake = Faker()
 TEST_USERNAME = "staff_test"
 TEST_PASSWORD = "Robot-Test-2026!"
 
+
 def get_password_set_at():
     password_set_at = datetime.now()
     return password_set_at
+
 
 def seed_database(num_users=20):
     """Generates fake users and inserts them into the SQLite table."""
@@ -34,7 +38,7 @@ def seed_database(num_users=20):
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL
             )
-        """
+            """
         )
 
         # One fixed test user so everyone (and Card 3's attack script) can log in the same way.
@@ -49,6 +53,9 @@ def seed_database(num_users=20):
             # Generate a realistic fake username and password
             username = fake.user_name()
             plain_password = fake.password(length=12)
+
+            # Record when the password was generated
+            password_set_at = get_password_set_at()
 
             # Hash the password safely using Bcrypt
             hashed_pw = hash_password(plain_password)
@@ -65,11 +72,10 @@ def seed_database(num_users=20):
                 continue
 
         conn.commit()
+
     print("\n--- Seeding Complete! 'users.db' is ready for simulation. ---")
 
 
 if __name__ == "__main__":
     # Generate 15 simulation profiles by default
     seed_database(15)
-
-
