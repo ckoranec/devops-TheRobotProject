@@ -58,6 +58,16 @@ def has_totp_secret(user_id):
     conn_totp.close()
     return result is not None and result[0] != ""
 
+def clear_totp_db():
+    """Drops and re-initializes the TOTP table to clear all stored secrets."""
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DROP TABLE IF EXISTS totp_secrets")
+    conn.commit()
+    conn.close()
+    init_totp_db()
+    print("TOTP database cleared and re-initialized.")
+
 @app.route('/login', methods=['POST'])
 def login():
     username = request.form.get('username')
@@ -161,7 +171,7 @@ def dashboard():
         
     return """
         <h2>Welcome to your Secure Dashboard!</h2>
-        <p>You have successfully passed both password authentication and 2FA. change routing in Verify-code page to home page</p>
+        <p>You have successfully passed both password authentication and 2FA. Change routing in Verify-code page to next needed page</p>
         <a href="/logout">Logout</a>
     """
 
@@ -169,6 +179,17 @@ def dashboard():
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
+@app.route('/')
+def index():
+    return render_template_string(LOGIN_HTML, error=None)
+
+
+@app.route('/reset-2fa')
+def reset_2fa():
+    clear_totp_db()
+    session.clear()
+    return "TOTP database has been cleared! <a href='/'>Go back to login</a>"
 
 LOGIN_HTML = '''
 <!DOCTYPE html>
@@ -178,8 +199,8 @@ LOGIN_HTML = '''
     <h2>Campus Login</h2>
     {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
     <form method="POST" action="/login">
-        <input type="text" name="username" placeholder="Username (try: student)" required><br><br>
-        <input type="password" name="password" placeholder="Password (try: password123)" required><br><br>
+        <input type="text" name="username" placeholder="Username" required><br><br>
+        <input type="password" name="password" placeholder="Password" required><br><br>
         <button type="submit">Login</button>
     </form>
 </body>
@@ -224,4 +245,4 @@ VERIFY_HTML = '''
 
 if __name__ == '__main__':
     init_totp_db()
-    app.run(debug=True, port=5000)
+    app.run(host="127.0.0.1", port=5051, debug=True)
