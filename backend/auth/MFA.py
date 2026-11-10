@@ -92,13 +92,11 @@ def login():
 
 @app.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa_page():
-    # Prevent direct URL skipping
     if 'pending_user_id' not in session:
         return abort(404)
 
     user_id = session['pending_user_id']
 
-    # Fetch username for the provisioning URI
     conn_user = sqlite3.connect(USER_DB_PATH)
     cursor_user = conn_user.cursor()
     cursor_user.execute("SELECT username FROM users WHERE id = ?", (user_id,))
@@ -110,15 +108,22 @@ def setup_2fa_page():
         
     username = result[0]
     
-    # Generate new base32 secret and save it
-    secret = pyotp.random_base32()
+    # Check if a secret was ALREADY generated for this user in totp.db
     conn_totp = sqlite3.connect(TOTP_DB_PATH)
     cursor_totp = conn_totp.cursor()
-    cursor_totp.execute(
-        "INSERT OR REPLACE INTO totp_secrets (user_id, totp_secret) VALUES (?, ?)",
-        (user_id, secret),
-    )
-    conn_totp.commit()
+    cursor_totp.execute("SELECT totp_secret FROM totp_secrets WHERE user_id = ?", (user_id,))
+    row = cursor_totp.fetchone()
+    
+    if row and row[0]:
+        secret = row[0] # Reuse the existing secret!
+    else:
+        # Generate new base32 secret only if it doesn't exist yet
+        secret = pyotp.random_base32()
+        cursor_totp.execute(
+            "INSERT OR REPLACE INTO totp_secrets (user_id, totp_secret) VALUES (?, ?)",
+            (user_id, secret),
+        )
+        conn_totp.commit()
     conn_totp.close()
 
     # Create provisioning URI & render QR code as base64 in memory
@@ -133,7 +138,6 @@ def setup_2fa_page():
     if request.method == 'POST':
         user_input_code = request.form.get('code')
         if verify_2fa(user_id, user_input_code):
-            # Success: Clear temporary pending state and start official session
             session.pop('pending_user_id', None)
             session['user_id'] = user_id
             return redirect(url_for('dashboard'))
@@ -178,7 +182,7 @@ def dashboard():
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect(url_for('index'))
 
 @app.route('/')
 def index():
@@ -206,7 +210,7 @@ LOGIN_HTML = '''
 </body>
 </html>
 '''
-
+ 
 SETUP_HTML = '''
 <!DOCTYPE html>
 <html>
