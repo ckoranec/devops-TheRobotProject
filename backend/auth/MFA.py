@@ -16,7 +16,7 @@ from campus_login import find_identity
 USER_DB_PATH = DB_FILE          # same DB the login page uses
 TOTP_DB_PATH = "totp.db"
 PENDING_SECONDS = 240           # time allowed to enter the code
-MAX_CODE_TRIES = 5
+MAX_CODE_TRIES = 2
 
 app = Flask(__name__)
 app.secret_key = secrets.token_hex(32)
@@ -152,19 +152,48 @@ def verify_code_page():
     if 'pending_user_id' not in session:
         return abort(404)
 
+    # Initialize tracking fields in session if they don't exist
+    if 'totp_attempts' not in session:
+        session['totp_attempts'] = 0
+    if 'totp_lockout_until' not in session:
+        session['totp_lockout_until'] = 0
+
+    current_time = time.time()
+
+    #  Check if the user is currently locked out
+    if current_time < session['totp_lockout_until']:
+        remaining_seconds = int(session['totp_lockout_until'] - current_time)
+        error_msg = f"Too many failed attempts. Please try again in {remaining_seconds} seconds."
+        return render_template_string(VERIFY_HTML, error=error_msg, locked=True)
+
+    # If lockout timer has expired, reset counters
+    if session['totp_lockout_until'] > 0 and current_time >= session['totp_lockout_until']:
+        session['totp_attempts'] = 0
+        session['totp_lockout_until'] = 0
+
     if request.method == 'POST':
         user_input_code = request.form.get('code')
         user_id = session['pending_user_id']
         
         if verify_2fa(user_id, user_input_code):
-            # Success: Clear temporary pending state and start official session
+            # Success: Clear all temporary states and start official session
             session.pop('pending_user_id', None)
+            session.pop('totp_attempts', None)
+            session.pop('totp_lockout_until', None)
             session['user_id'] = user_id
             return redirect(url_for('dashboard'))
         else:
-            return render_template_string(VERIFY_HTML, error="Invalid verification code.")
+            session['totp_attempts'] += 1
+            
+            # 3. Check if max attempts reached
+            if session['totp_attempts'] >= MAX_CODE_TRIES:
+                session['totp_lockout_until'] = time.time() + 30  # Lock out for 30 seconds
+                return render_template_string(VERIFY_HTML, error="Too many failed attempts. Locked out for 1 minute.", locked=True)
+            
+            remaining_tries = MAX_CODE_TRIES - session['totp_attempts']
+            return render_template_string(VERIFY_HTML, error=f"Invalid verification code. {remaining_tries} attempts remaining.", locked=False)
 
-    return render_template_string(VERIFY_HTML, error=None)
+    return render_template_string(VERIFY_HTML, error=None, locked=False)
 
 
 @app.route('/dashboard')
@@ -352,7 +381,7 @@ VERIFY_HTML = '''
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Verify Code</title>
+    <title>Verify Code — MaxBytes Campus</title>
     <style>
         body {
             margin: 0;
@@ -395,6 +424,10 @@ VERIFY_HTML = '''
             text-align: center;
             letter-spacing: 4px;
         }
+        input:disabled {
+            background-color: #eef2f6;
+            cursor: not-allowed;
+        }
         button {
             width: 100%;
             margin-top: 20px;
@@ -408,7 +441,11 @@ VERIFY_HTML = '''
             cursor: pointer;
             transition: background 0.2s;
         }
-        button:hover {
+        button:disabled {
+            background: #aab5bf;
+            cursor: not-allowed;
+        }
+        button:hover:not(:disabled) {
             background: #054835;
         }
         .error {
@@ -431,9 +468,13 @@ VERIFY_HTML = '''
         {% endif %}
         
         <form method="POST">
-            <input type="text" name="code" placeholder="123456" maxlength="6" required autocomplete="one-time-code">
-            <button type="submit">Verify Code</button>
+            <input type="text" name="code" placeholder="123456" maxlength="6" required autocomplete="one-time-code" {% if locked %}disabled{% endif %}>
+            <button type="submit" {% if locked %}disabled{% endif %}>Verify Code</button>
         </form>
+        
+        {% if locked %}
+            <p style="margin-top: 15px; font-size: 12px;"><a href="/verify-code">Refresh page</a> to check lockout status.</p>
+        {% endif %}
     </main>
 </body>
 </html>
