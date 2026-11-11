@@ -29,6 +29,10 @@ logging.basicConfig(
     ]
 )
 
+"""
+    run command in terminal first to load secret
+    $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
+"""
 app = Flask(__name__)
 app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
 
