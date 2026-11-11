@@ -19,3 +19,6 @@ __pycache__/
 __pycache__/
 .pytest_cache/
 .venv/
+
+#Ignore account activity log 
+backend/auth/account_activity.log
