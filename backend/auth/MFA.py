@@ -24,7 +24,7 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-7s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
-        logging.FileHandler("mfa_security.log", encoding="utf-8"),
+        logging.FileHandler("account_activity.log", encoding="utf-8"),
         logging.StreamHandler()
     ]
 )
