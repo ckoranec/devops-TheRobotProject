@@ -32,7 +32,7 @@ def home():
         <body>
             <h1>GMU Robot Project - Staff Login</h1>
 
-            <form action="/login" method="POST"q>
+            <form action="/login" method="POST">
                 <label for="username">Username:</label>
                 <input type="text" id="username" name="username" required>
 
@@ -71,9 +71,8 @@ def login():
     if not verify_password(stored_hash, password):
         return "Invalid username or password.", 401
 
-    # If both checks passed then authentication succeeds.
+    # If both checks passed then authentication succeeds
     return "Password verified successfully!"
-
 
 if __name__ == "__main__":
     app.run(debug=True)

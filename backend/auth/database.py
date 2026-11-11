@@ -30,6 +30,27 @@ def get_user_by_username(username):
     finally:
         conn.close()
 
+def update_user_password(username, new_password_hash):
+    # Update a user's stored password hash
+
+    conn = sqlite3.connect(DB_FILE)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "UPDATE users SET password_hash = ? WHERE username = ?",
+            (new_password_hash, username)
+        )
+
+        updated_rows = cursor.rowcount
+        conn.commit()
+
+        return updated_rows == 1
+
+    finally:
+        conn.close()
+
 
 if __name__ == "__main__":
     user = get_user_by_username("staff_test")
