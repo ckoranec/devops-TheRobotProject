@@ -4,6 +4,7 @@ import secrets
 import sqlite3
 import time
 import os
+import logging
 
 import pyotp
 import qrcode
@@ -16,6 +17,17 @@ USER_DB_PATH = DB_FILE
 TOTP_DB_PATH = "totp.db"       
 PENDING_SECONDS = 300           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
+
+# Configure logging to write to both a file and the terminal
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-7s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler("mfa_security.log", encoding="utf-8"),
+        logging.StreamHandler()
+    ]
+)
 
 app = Flask(__name__)
 app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
@@ -151,11 +163,13 @@ def setup_2fa_page():
 
     if current_time < lockout_until:
         remaining_seconds = int(lockout_until - current_time)
+        logging.warning(f"Lockout active block | setup-2fa | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
         return render_template_string(SETUP_HTML, qr_base64="", secret="", error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
 
     if lockout_until > 0 and current_time >= lockout_until:
         reset_totp_attempts(user_id)
         failed_attempts = 0
+        logging.info(f"Lockout expired & reset | setup-2fa | user_id={user_id} ({username})")
 
     # Fetch username for provisioning URI
     conn_user = sqlite3.connect(USER_DB_PATH)
@@ -195,16 +209,19 @@ def setup_2fa_page():
             reset_totp_attempts(user_id)
             session.pop('pending_user_id', None)
             session['user_id'] = user_id
+            logging.info(f"2FA Setup verification success | user_id={user_id} ({username})")
             return redirect(url_for('dashboard'))
         else:
             failed_attempts += 1
             if failed_attempts >= MAX_CODE_TRIES:
                 lockout_until = time.time() + 60
                 update_totp_attempts(user_id, failed_attempts, lockout_until)
+                logging.error(f"LOCKOUT TRIGGERED | setup-2fa | user_id={user_id} ({username}) | failed_attempts={failed_attempts}/{MAX_CODE_TRIES} | locked_for=60s")
                 return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error="Too many failed attempts. Locked out for 1 minute.", locked=True)
             else:
                 update_totp_attempts(user_id, failed_attempts, lockout_until)
                 remaining = MAX_CODE_TRIES - failed_attempts
+                logging.warning(f"2FA Setup verification failed | user_id={user_id} ({username}) | attempt {failed_attempts} of {MAX_CODE_TRIES}")
                 return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error=f"Invalid code. {remaining} attempts remaining.", locked=False)
 
     return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error=None, locked=False)
@@ -216,6 +233,7 @@ def verify_code_page():
         return abort(404)
 
     user_id = session['pending_user_id']
+    username = get_username_by_id(user_id=)
 
     # Check server-side lockout status
     row = get_totp_record(user_id)
@@ -225,11 +243,13 @@ def verify_code_page():
 
     if current_time < lockout_until:
         remaining_seconds = int(lockout_until - current_time)
+        logging.warning(f"Lockout active block | verify-code | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
         return render_template_string(VERIFY_HTML, error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
 
     if lockout_until > 0 and current_time >= lockout_until:
         reset_totp_attempts(user_id)
         failed_attempts = 0
+        logging.info(f"Lockout expired & reset | verify-code | user_id={user_id} ({username})")
 
     if request.method == 'POST':
         user_input_code = request.form.get('code')
@@ -238,16 +258,19 @@ def verify_code_page():
             reset_totp_attempts(user_id)
             session.pop('pending_user_id', None)
             session['user_id'] = user_id
+            logging.info(f"2FA verification success | user_id={user_id} ({username})")
             return redirect(url_for('dashboard'))
         else:
             failed_attempts += 1
             if failed_attempts >= MAX_CODE_TRIES:
                 lockout_until = time.time() + 60
                 update_totp_attempts(user_id, failed_attempts, lockout_until)
+                logging.error(f"LOCKOUT TRIGGERED | verify-code | user_id={user_id} ({username}) | failed_attempts={failed_attempts}/{MAX_CODE_TRIES} | locked_for=60s")
                 return render_template_string(VERIFY_HTML, error="Too many failed attempts. Locked out for 1 minute.", locked=True)
             else:
                 update_totp_attempts(user_id, failed_attempts, lockout_until)
                 remaining = MAX_CODE_TRIES - failed_attempts
+                logging.warning(f"2FA verification failed | user_id={user_id} ({username}) | attempt {failed_attempts} of {MAX_CODE_TRIES}")
                 return render_template_string(VERIFY_HTML, error=f"Invalid code. {remaining} attempts remaining.", locked=False)
 
     return render_template_string(VERIFY_HTML, error=None, locked=False)
@@ -267,27 +290,34 @@ def dashboard():
 
 @app.route('/logout')
 def logout():
+    user_id = session.get('user_id')
+    username = get_username_by_id(user_id) if user_id else logging.warning(f"Unknown user logout")
     session.clear()
+    logging.info(f"User logout | user_id={user_id} ({username})")
     return redirect(url_for('index'))
 
 
 @app.route('/reset-2fa/<int:target_user_id>')
 def reset_2fa(target_user_id):
     if not app.debug:
+        logging.warning(f"Unauthorized reset attempt in non-debug mode | target_user_id={target_user_id} | IP={request.remote_addr}")
         return abort(403)
         
     current_user_id = session.get('user_id') or session.get('pending_user_id')
     if not current_user_id:
+        logging.warning(f"Unauthenticated reset attempt | target_user_id={target_user_id} | IP={request.remote_addr}")
         return abort(403)
         
     # Prevent users from resetting someone else's 2FA account
     if current_user_id != target_user_id:
+        logging.error(f"SECURITY VIOLATION: Cross-user 2FA reset attempt blocked! | actor_id={current_user_id} ({current_username}) tried to reset target_user_id={target_user_id}")
         return abort(403)
 
     remove_user_totp(target_user_id)
     session.clear()
     session['pending_user_id'] = target_user_id
-    
+
+    logging.info(f"2FA reset successful | user_id={target_user_id} ({target_username}) cleared their own 2FA instance")
     return redirect(url_for('setup_2fa_page'))
 
 
