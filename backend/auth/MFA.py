@@ -3,6 +3,7 @@ import base64
 import secrets
 import sqlite3
 import time
+import os
 
 import pyotp
 import qrcode
@@ -17,7 +18,10 @@ PENDING_SECONDS = 300           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)
+app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
+
+if not app.secret_key:
+    raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
 
 def init_totp_db():
     conn = sqlite3.connect(TOTP_DB_PATH)
