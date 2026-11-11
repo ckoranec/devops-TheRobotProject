@@ -13,7 +13,7 @@ from campus_login import find_identity
 
 USER_DB_PATH = DB_FILE          
 TOTP_DB_PATH = "totp.db"       
-PENDING_SECONDS = 240           # Time allowed to enter the code
+PENDING_SECONDS = 300           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
 
 app = Flask(__name__)
@@ -73,7 +73,7 @@ def has_totp_secret(user_id):
     return row is not None and row[0] != ""
 
 def get_username_by_id(user_id):
-    """Helper to fetch username from users.db by user_id."""
+    #Helper to fetch username from users.db by user_id
     if not user_id:
         return None
     conn = sqlite3.connect(USER_DB_PATH)
@@ -84,7 +84,7 @@ def get_username_by_id(user_id):
     return row[0] if row else None
 
 def clear_totp_db():
-    """Drops and re-initializes the TOTP table to clear all stored secrets."""
+    #Drops and re-initializes the TOTP table to clear all stored secrets
     conn = sqlite3.connect(TOTP_DB_PATH)
     cursor = conn.cursor()
     cursor.execute("DROP TABLE IF EXISTS totp_secrets")
@@ -93,6 +93,15 @@ def clear_totp_db():
     init_totp_db()
     print("TOTP database cleared and re-initialized.")
 
+def remove_user_totp(user_id):
+    # Removes a specific user's TOTP instance from the database
+    init_totp_db()
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM totp_secrets WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
+    print(f"TOTP instance removed for user_id: {user_id}")
 
 @app.route('/')
 def index():
@@ -258,23 +267,24 @@ def logout():
     return redirect(url_for('index'))
 
 
-@app.route('/reset-2fa')
-def reset_2fa():
-    # Only allow if debug mode is active AND the current user is specifically 'staff_test'
+@app.route('/reset-2fa/<int:target_user_id>')
+def reset_2fa(target_user_id):
     if not app.debug:
         return abort(403)
         
-    user_id = session.get('user_id') or session.get('pending_user_id')
-    if not user_id:
+    current_user_id = session.get('user_id') or session.get('pending_user_id')
+    if not current_user_id:
         return abort(403)
         
-    username = get_username_by_id(user_id)
-    if username != 'staff_test':
+    # Prevent users from resetting someone else's 2FA account
+    if current_user_id != target_user_id:
         return abort(403)
 
-    clear_totp_db()
+    remove_user_totp(target_user_id)
     session.clear()
-    return "TOTP database has been successfully cleared by staff_test! <a href='/'>Go back to login</a>"
+    session['pending_user_id'] = target_user_id
+    
+    return redirect(url_for('setup_2fa_page'))
 
 
 # --- HTML & CSS TEMPLATES ---
