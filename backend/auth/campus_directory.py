@@ -192,3 +192,156 @@ def test_create_campus_table_preserves_staff(tmp_path):
     assert staff_rows == [
         (1, "staff_fixture", "test-placeholder-not-a-login-hash")
     ]
+
+    # 2026-11-12 — David Noyes — Seed independent campus accounts safely.
+
+
+def seed_campus_accounts(database_path, staff_password, student_password):
+    # Require both passwords before making any database changes.
+    import sqlite3
+    from pathlib import Path
+
+    if not staff_password or not student_password:
+        raise ValueError("Both fake campus passwords are required.")
+
+    # Prepare the campus table in the existing database.
+    create_campus_table(database_path)
+    database_uri = Path(database_path).resolve().as_uri() + "?mode=rw"
+    connection = sqlite3.connect(database_uri, uri=True)
+
+    # Define initial identities; staff-site permissions belong to Colin's mapping.
+    accounts = [
+        ("CAMPUS-1001", "campus_staff", "Demo Staff", "staff", staff_password),
+        ("CAMPUS-2001", "campus_student", "Demo Student", "student", student_password),
+    ]
+
+    # Add missing identities without changing accounts that already exist.
+    added_count = 0
+    try:
+        for campus_id, username, name, affiliation, password in accounts:
+            existing_account = connection.execute(
+                "SELECT campus_id FROM campus_accounts WHERE campus_id = ?",
+                (campus_id,),
+            ).fetchone()
+
+            if existing_account is not None:
+                continue
+
+            password_hash = hash_password(password)
+            connection.execute(
+                """
+                INSERT INTO campus_accounts
+                    (campus_id, username, name, affiliation, password_hash)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (campus_id, username, name, affiliation, password_hash),
+            )
+            added_count += 1
+
+        connection.commit()
+    except Exception:
+        # Undo this call's account inserts if any insert or hashing operation fails.
+        connection.rollback()
+        raise
+    finally:
+        connection.close()
+
+    # Tell the caller how many new accounts were inserted.
+    return added_count
+
+
+def seed_campus_accounts_from_environment(database_path):
+    # Read setup passwords without placing their values in source code or output.
+    staff_password = os.environ.get("CAMPUS_FAKE_STAFF_PASSWORD", "")
+    student_password = os.environ.get("CAMPUS_FAKE_STUDENT_PASSWORD", "")
+
+    if not staff_password or not student_password:
+        raise RuntimeError(
+            "Set CAMPUS_FAKE_STAFF_PASSWORD and CAMPUS_FAKE_STUDENT_PASSWORD."
+        )
+
+    return seed_campus_accounts(
+        database_path, staff_password, student_password
+    )
+
+
+def test_seed_campus_accounts_preserves_existing_data(tmp_path):
+    # Create a disposable database and a staff record unrelated to campus accounts.
+    import sqlite3
+
+    database_path = tmp_path / "campus_seed_test.db"
+    connection = sqlite3.connect(database_path)
+    try:
+        connection.execute(
+            "CREATE TABLE users (id INTEGER PRIMARY KEY, username TEXT)"
+        )
+        connection.execute(
+            "INSERT INTO users VALUES (?, ?)",
+            (1, "existing_staff"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    # Supply synthetic passwords used only by this automated test.
+    staff_password = "Test-Staff-Only!"
+    student_password = "Test-Student-Only!"
+    added_count = seed_campus_accounts(
+        database_path, staff_password, student_password
+    )
+
+    # Repeat setup with different inputs; existing passwords must remain unchanged.
+    repeated_count = seed_campus_accounts(
+        database_path, "Different-Staff-Test!", "Different-Student-Test!"
+    )
+
+    # Read the stored results from the temporary database.
+    connection = sqlite3.connect(database_path)
+    try:
+        campus_rows = connection.execute(
+            """
+            SELECT campus_id, username, name, affiliation, password_hash
+            FROM campus_accounts
+            ORDER BY campus_id
+            """
+        ).fetchall()
+        staff_rows = connection.execute(
+            "SELECT id, username FROM users"
+        ).fetchall()
+    finally:
+        connection.close()
+
+    # Verify the account identities, affiliations, and preservation of staff data.
+    assert added_count == 2
+    assert repeated_count == 0
+    assert len(campus_rows) == 2
+    assert campus_rows[0][:4] == (
+        "CAMPUS-1001", "campus_staff", "Demo Staff", "staff"
+    )
+    assert campus_rows[1][:4] == (
+        "CAMPUS-2001", "campus_student", "Demo Student", "student"
+    )
+    assert staff_rows == [(1, "existing_staff")]
+
+    # Verify hashing and prove repeated setup did not reset the original passwords.
+    assert campus_rows[0][4] != staff_password
+    assert campus_rows[1][4] != student_password
+    assert verify_password(campus_rows[0][4], staff_password)
+    assert verify_password(campus_rows[1][4], student_password)
+    assert not verify_password(campus_rows[0][4], "Different-Staff-Test!")
+    assert not verify_password(campus_rows[1][4], "Different-Student-Test!")
+
+
+def test_campus_seed_requires_environment_passwords(tmp_path, monkeypatch):
+    # Remove setup variables only within this test, regardless of laptop settings.
+    import pytest
+
+    monkeypatch.delenv("CAMPUS_FAKE_STAFF_PASSWORD", raising=False)
+    monkeypatch.delenv("CAMPUS_FAKE_STUDENT_PASSWORD", raising=False)
+    database_path = tmp_path / "must_not_be_created.db"
+
+    # Missing passwords must fail before creating or opening a database.
+    with pytest.raises(RuntimeError, match="CAMPUS_FAKE_STAFF_PASSWORD"):
+        seed_campus_accounts_from_environment(database_path)
+
+    assert not database_path.exists()
