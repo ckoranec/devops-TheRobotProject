@@ -108,3 +108,87 @@ def test_username_change_preserves_campus_id():  # Test an account rename.
     assert identity is not None  # Require the renamed account to work.
     assert identity["campus_id"] == "CAMPUS-1001"  # Require its campus identity to stay unchanged.
     assert old_login is None  # Require the old login name to fail.
+
+    # 2026-11-12 — David Noyes — Add campus table setup and an isolated test.
+
+
+def create_campus_table(database_path):
+    # Open an existing database for writing without creating a missing database.
+    import sqlite3
+    from pathlib import Path
+
+    database_uri = Path(database_path).resolve().as_uri() + "?mode=rw"
+    connection = sqlite3.connect(database_uri, uri=True)
+
+    # Create only the campus table, then close the connection even if SQL fails.
+    try:
+        connection.execute("""
+               CREATE TABLE IF NOT EXISTS campus_accounts (
+                   campus_id TEXT PRIMARY KEY NOT NULL,
+                   username TEXT UNIQUE NOT NULL,
+                   name TEXT NOT NULL,
+                   affiliation TEXT NOT NULL
+                       CHECK (affiliation IN ('staff', 'student')),
+                   password_hash TEXT NOT NULL
+               )
+           """)
+        connection.commit()
+    finally:
+        connection.close()
+
+
+def test_create_campus_table_preserves_staff(tmp_path):
+    # Build a disposable database containing one fictional staff record.
+    import sqlite3
+
+    database_path = tmp_path / "campus_table_test.db"
+    connection = sqlite3.connect(database_path)
+
+    try:
+        connection.execute("""
+               CREATE TABLE users (
+                   id INTEGER PRIMARY KEY AUTOINCREMENT,
+                   username TEXT UNIQUE NOT NULL,
+                   password_hash TEXT NOT NULL
+               )
+           """)
+        connection.execute(
+            "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+            ("staff_fixture", "test-placeholder-not-a-login-hash"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    # Running setup twice must succeed without removing the existing staff row.
+    create_campus_table(database_path)
+    create_campus_table(database_path)
+
+    # Inspect the resulting tables in the disposable database.
+    connection = sqlite3.connect(database_path)
+    try:
+        columns = connection.execute(
+            "PRAGMA table_info(campus_accounts)"
+        ).fetchall()
+        staff_rows = connection.execute(
+            "SELECT id, username, password_hash FROM users"
+        ).fetchall()
+        campus_count = connection.execute(
+            "SELECT COUNT(*) FROM campus_accounts"
+        ).fetchone()[0]
+    finally:
+        connection.close()
+
+    # Confirm the campus columns exist, the table is empty, and staff data survived.
+    column_names = [column[1] for column in columns]
+    assert column_names == [
+        "campus_id",
+        "username",
+        "name",
+        "affiliation",
+        "password_hash",
+    ]
+    assert campus_count == 0
+    assert staff_rows == [
+        (1, "staff_fixture", "test-placeholder-not-a-login-hash")
+    ]
