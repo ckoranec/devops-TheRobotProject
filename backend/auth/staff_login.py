@@ -49,10 +49,19 @@ def home():
 
                 <br><br>
 
-                <button type="submit">Log In</button>
+                
+                 <button type="submit">Log In</button>
             </form>
+
+            <br>
+
+            <p>
+                Trouble signing in?
+                <a href="/recover">Forgot username or password?</a>
+            </p>
         </body>
         </html>
+
     """)
 
 @app.route("/login", methods=["POST"])
@@ -104,13 +113,27 @@ def staff_page():
 
     return "Welcome to the GMU Robot Project staff area!"
 
+
+@app.route("/recover")
+def recover_account():
+
+    # Placeholder until Satchi's account recovery code is integrated
+    return render_template_string("""
+        <h2>Account Recovery</h2>
+        <p>Username and password recovery will be available here.</p>
+        <a href="/">Return to Login</a>
+    """)
+
+
 @app.route("/logout", methods=["POST"])
 def logout():
+
     # Clear the user's authentication session
     session.clear()
 
     # Send the user back to the login page
     return redirect(url_for("home"))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
