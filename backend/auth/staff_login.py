@@ -117,10 +117,28 @@ def staff_page():
 @app.route("/recover")
 def recover_account():
 
-    # Placeholder until Satchi's account recovery code is integrated
+    # Display the recovery code entry form
     return render_template_string("""
         <h2>Account Recovery</h2>
-        <p>Username and password recovery will be available here.</p>
+
+        <p>Enter your generated recovery code below.</p>
+
+        <form action="/verify-recovery" method="POST">
+            <label for="recovery_code">Recovery Code:</label>
+            <input
+                type="text"
+                id="recovery_code"
+                name="recovery_code"
+                required
+            >
+
+            <br><br>
+
+            <button type="submit">Verify Recovery Code</button>
+        </form>
+
+        <br>
+
         <a href="/">Return to Login</a>
     """)
 
