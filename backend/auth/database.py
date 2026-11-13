@@ -14,8 +14,6 @@ def get_user_by_username(username):
 
     conn = sqlite3.connect(DB_FILE)
 
-    print("Database location:", DB_FILE)
-
     try:
         cursor = conn.cursor()
 
