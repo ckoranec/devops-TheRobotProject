@@ -35,7 +35,14 @@ logging.basicConfig(
 
 """
     run command in terminal first to load secret
+    powershell:
     $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
+
+    cmd:
+    for /f "delims=" %i in ('python -c "import secrets; print(secrets.token_hex(32))"') do set "FLASK_SECRET_KEY=%i"
+
+    git bash
+    export FLASK_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
 """
 app = Flask(__name__)
 app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
