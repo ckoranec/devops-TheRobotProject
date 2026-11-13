@@ -345,3 +345,147 @@ def test_campus_seed_requires_environment_passwords(tmp_path, monkeypatch):
         seed_campus_accounts_from_environment(database_path)
 
     assert not database_path.exists()
+
+
+# 2026-11-13 — David Noyes — Read-only campus authentication and database tests.
+
+def find_campus_identity(username, password, database_path=None):
+    # Use the team's database location unless a test supplies a temporary database.
+    import sqlite3
+    from pathlib import Path
+    from backend.auth.database import DB_FILE
+
+    if database_path is None:
+        database_path = DB_FILE
+
+    # Open the existing database read-only so login cannot create or change data.
+    database_uri = Path(database_path).resolve().as_uri() + "?mode=ro"
+    connection = sqlite3.connect(database_uri, uri=True)
+    connection.row_factory = sqlite3.Row
+
+    # Search only campus accounts and keep the username separate from SQL syntax.
+    try:
+        account = connection.execute(
+            """
+            SELECT campus_id, username, name, affiliation, password_hash
+            FROM campus_accounts
+            WHERE username = ?
+            """,
+            (username,),
+        ).fetchone()
+    finally:
+        connection.close()
+
+    # Give the same failure result for an unknown username and a wrong password.
+    if account is None:
+        return None
+
+    password_matches = verify_password(account["password_hash"], password)
+    if not password_matches:
+        return None
+
+    # Return campus identity information without passwords, hashes, or staff roles.
+    return {
+        "campus_id": account["campus_id"],
+        "username": account["username"],
+        "name": account["name"],
+        "affiliation": account["affiliation"],
+    }
+
+
+# 2026-11-13 — David Noyes — Test campus lookup using a temporary database.
+def test_database_campus_lookup(tmp_path):
+    # Create an isolated database containing a staff-only account.
+    import sqlite3
+
+    database_path = tmp_path / "campus_lookup_test.db"
+    staff_only_password = "Staff-Only-Test!"
+    connection = sqlite3.connect(database_path)
+
+    try:
+        connection.execute(
+            """
+            CREATE TABLE users (
+                id INTEGER PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL
+            )
+            """
+        )
+        connection.execute(
+            "INSERT INTO users VALUES (?, ?, ?)",
+            (1, "staff_test", hash_password(staff_only_password)),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    # Seed campus identities into this temporary database only.
+    staff_password = "Campus-Staff-Test!"
+    student_password = "Campus-Student-Test!"
+    seed_campus_accounts(database_path, staff_password, student_password)
+
+    # Both affiliations can authenticate with the university's campus directory.
+    staff = find_campus_identity(
+        "campus_staff", staff_password, database_path
+    )
+    student = find_campus_identity(
+        "campus_student", student_password, database_path
+    )
+
+    assert staff == {
+        "campus_id": "CAMPUS-1001",
+        "username": "campus_staff",
+        "name": "Demo Staff",
+        "affiliation": "staff",
+    }
+    assert student == {
+        "campus_id": "CAMPUS-2001",
+        "username": "campus_student",
+        "name": "Demo Student",
+        "affiliation": "student",
+    }
+
+    # Refuse wrong credentials and accounts that exist only in the staff table.
+    assert find_campus_identity(
+        "campus_staff", "wrong-password", database_path
+    ) is None
+    assert find_campus_identity(
+        "unknown_account", staff_password, database_path
+    ) is None
+    assert find_campus_identity(
+        "staff_test", staff_only_password, database_path
+    ) is None
+
+    # Renaming a campus username must not change the permanent campus identity.
+    connection = sqlite3.connect(database_path)
+    try:
+        connection.execute(
+            "UPDATE campus_accounts SET username = ? WHERE campus_id = ?",
+            ("renamed_staff", "CAMPUS-1001"),
+        )
+        connection.commit()
+    finally:
+        connection.close()
+
+    renamed = find_campus_identity(
+        "renamed_staff", staff_password, database_path
+    )
+    assert renamed is not None
+    assert renamed["campus_id"] == "CAMPUS-1001"
+    assert find_campus_identity(
+        "campus_staff", staff_password, database_path
+    ) is None
+
+
+def test_database_lookup_does_not_create_missing_database(tmp_path):
+    # A missing database is a setup error; authentication must not create one.
+    import sqlite3
+    import pytest
+
+    database_path = tmp_path / "missing_database.db"
+
+    with pytest.raises(sqlite3.OperationalError):
+        find_campus_identity("campus_staff", "test-password", database_path)
+
+    assert not database_path.exists()
