@@ -14,7 +14,9 @@ from seed_users import DB_FILE
 from campus_login import find_identity
 
 USER_DB_PATH = DB_FILE          
-TOTP_DB_PATH = "totp.db"       
+TOTP_DB_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),"totp.db" 
+)      
 PENDING_SECONDS = 300           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
 
@@ -24,7 +26,9 @@ logging.basicConfig(
     format="%(asctime)s | %(levelname)-7s | %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
     handlers=[
-        logging.FileHandler("account_activity.log", encoding="utf-8"),
+        logging.FileHandler(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)),"account_activity.log"), encoding="utf-8"
+            ),
         logging.StreamHandler()
     ]
 )
