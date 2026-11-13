@@ -299,7 +299,11 @@ def dashboard():
 @app.route('/logout')
 def logout():
     user_id = session.get('user_id')
-    username = get_username_by_id(user_id) if user_id else logging.warning(f"Unknown user logout")
+    if user_id:
+        username = get_username_by_id(user_id)
+    else:
+        logging.warning("Unknown user logout attempted without active session")
+        username = "Unknown"
     session.clear()
     logging.info(f"User logout | user_id={user_id} ({username})")
     return redirect(url_for('index'))
