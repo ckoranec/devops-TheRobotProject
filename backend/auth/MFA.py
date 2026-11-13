@@ -34,7 +34,7 @@ logging.basicConfig(
 )
 
 """
-    run command in terminal first to load secret
+    run command in terminal to set FLASK_SECRET_KEY
     powershell:
     $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
 
@@ -46,6 +46,12 @@ logging.basicConfig(
 """
 app = Flask(__name__)
 app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
+if not app.secret_key:
+    if os.environ.get("APP_ENV") == "production":
+        raise RuntimeError("Set FLASK_SECRET_KEY before starting the application in production.")
+    else:
+        app.secret_key = secrets.token_hex(32)
+        print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
 
 if not app.secret_key:
     raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
@@ -458,4 +464,4 @@ VERIFY_HTML = '''
 
 if __name__ == '__main__':
     init_totp_db()
-    app.run(host="127.0.0.1", port=5051, debug=True)
+    app.run(host="127.0.0.1", debug=True)
