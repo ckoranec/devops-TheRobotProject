@@ -52,9 +52,14 @@ def init_totp_db():
             user_id INTEGER PRIMARY KEY,
             totp_secret TEXT NOT NULL,
             failed_attempts INTEGER DEFAULT 0,
-            lockout_until REAL DEFAULT 0.0
+            lockout_until REAL DEFAULT 0.0,
+            confirmed INTEGER NOT NULL DEFAULT 0
         )
     """)
+    try:
+        cursor.execute("ALTER TABLE totp_secrets ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 1")
+    except sqlite3.OperationalError:
+        pass  # column already exist
     conn.commit()
     conn.close()
 
@@ -62,7 +67,10 @@ def get_totp_record(user_id):
     init_totp_db()
     conn = sqlite3.connect(TOTP_DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT totp_secret, failed_attempts, lockout_until FROM totp_secrets WHERE user_id = ?", (user_id,))
+    cursor.execute(
+        "SELECT totp_secret, failed_attempts, lockout_until, confirmed FROM totp_secrets WHERE user_id = ?",
+        (user_id,),
+    )  
     row = cursor.fetchone()
     conn.close()
     return row
@@ -94,7 +102,13 @@ def verify_2fa(user_id, user_input_code):
 
 def has_totp_secret(user_id):
     row = get_totp_record(user_id)
-    return row is not None and row[0] != ""
+    return row is not None and row[0] != "" and row[3] == 1
+
+def confirm_totp_secret(user_id):
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    conn.execute("UPDATE totp_secrets SET confirmed = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
 
 def get_username_by_id(user_id):
     #Helper to fetch username from users.db by user_id
@@ -158,13 +172,15 @@ def setup_2fa_page():
         return abort(404)
 
     user_id = session['pending_user_id']
+    username = get_username_by_id(user_id)   # defined before any logging
+    if not username:
+        return abort(404)
 
-    # Block users who already have a secret from resetting via setup URL
+    # Only a CONFIRMED secret blocks setup
     if has_totp_secret(user_id):
         return redirect(url_for('verify_code_page'))
 
-    # Check server-side lockout status
-    row = get_totp_record(user_id)
+    row = get_totp_record(user_id)           # may be an unconfirmed pending secret
     failed_attempts = row[1] if row else 0
     lockout_until = row[2] if row else 0.0
     current_time = time.time()
@@ -172,65 +188,57 @@ def setup_2fa_page():
     if current_time < lockout_until:
         remaining_seconds = int(lockout_until - current_time)
         logging.warning(f"Lockout active block | setup-2fa | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
-        return render_template_string(SETUP_HTML, qr_base64="", secret="", error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
+        return render_template_string(SETUP_HTML, qr_base64="", secret="",
+                                      error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
 
     if lockout_until > 0 and current_time >= lockout_until:
         reset_totp_attempts(user_id)
         failed_attempts = 0
+        lockout_until = 0.0
         logging.info(f"Lockout expired & reset | setup-2fa | user_id={user_id} ({username})")
 
-    # Fetch username for provisioning URI
-    conn_user = sqlite3.connect(USER_DB_PATH)
-    cursor_user = conn_user.cursor()
-    cursor_user.execute("SELECT username FROM users WHERE id = ?", (user_id,))
-    result = cursor_user.fetchone()
-    conn_user.close()
-    
-    if not result:
-        return abort(404)
-        
-    username = result[0]
-    
-    # Generate new secret and save it to DB with initial attempt tracking
-    secret = pyotp.random_base32()
-    init_totp_db()
-    conn_totp = sqlite3.connect(TOTP_DB_PATH)
-    cursor_totp = conn_totp.cursor()
-    cursor_totp.execute(
-        "INSERT OR REPLACE INTO totp_secrets (user_id, totp_secret, failed_attempts, lockout_until) VALUES (?, ?, ?, ?)",
-        (user_id, secret, failed_attempts, lockout_until),
-    )
-    conn_totp.commit()
-    conn_totp.close()
+    # Reuse the pending secret if there is one; only create it once
+    if row and row[0]:
+        secret = row[0]
+    else:
+        secret = pyotp.random_base32()
+        init_totp_db()
+        conn = sqlite3.connect(TOTP_DB_PATH)
+        conn.execute(
+            "INSERT OR REPLACE INTO totp_secrets (user_id, totp_secret, failed_attempts, lockout_until, confirmed) "
+            "VALUES (?, ?, 0, 0.0, 0)",
+            (user_id, secret),
+        )
+        conn.commit()
+        conn.close()
 
-    totp = pyotp.TOTP(secret)
-    uri = totp.provisioning_uri(name=username, issuer_name="Robot Project")
-
-    qr_img = qrcode.make(uri)
+    uri = pyotp.TOTP(secret).provisioning_uri(name=username, issuer_name="Robot Project")
     buffered = io.BytesIO()
-    qr_img.save(buffered, format="PNG")
+    qrcode.make(uri).save(buffered, format="PNG")
     qr_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     if request.method == 'POST':
-        user_input_code = request.form.get('code')
+        user_input_code = (request.form.get('code') or "").strip()
         if verify_2fa(user_id, user_input_code):
+            confirm_totp_secret(user_id)
             reset_totp_attempts(user_id)
             session.pop('pending_user_id', None)
             session['user_id'] = user_id
             logging.info(f"2FA Setup verification success | user_id={user_id} ({username})")
             return redirect(url_for('dashboard'))
-        else:
-            failed_attempts += 1
-            if failed_attempts >= MAX_CODE_TRIES:
-                lockout_until = time.time() + 60
-                update_totp_attempts(user_id, failed_attempts, lockout_until)
-                logging.error(f"LOCKOUT TRIGGERED | setup-2fa | user_id={user_id} ({username}) | failed_attempts={failed_attempts}/{MAX_CODE_TRIES} | locked_for=60s")
-                return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error="Too many failed attempts. Locked out for 1 minute.", locked=True)
-            else:
-                update_totp_attempts(user_id, failed_attempts, lockout_until)
-                remaining = MAX_CODE_TRIES - failed_attempts
-                logging.warning(f"2FA Setup verification failed | user_id={user_id} ({username}) | attempt {failed_attempts} of {MAX_CODE_TRIES}")
-                return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error=f"Invalid code. {remaining} attempts remaining.", locked=False)
+
+        failed_attempts += 1
+        if failed_attempts >= MAX_CODE_TRIES:
+            lockout_until = time.time() + 60
+            update_totp_attempts(user_id, failed_attempts, lockout_until)
+            logging.error(f"LOCKOUT TRIGGERED | setup-2fa | user_id={user_id} ({username}) | failed_attempts={failed_attempts}/{MAX_CODE_TRIES} | locked_for=60s")
+            return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret,
+                                          error="Too many failed attempts. Locked out for 1 minute.", locked=True)
+        update_totp_attempts(user_id, failed_attempts, lockout_until)
+        remaining = MAX_CODE_TRIES - failed_attempts
+        logging.warning(f"2FA Setup verification failed | user_id={user_id} ({username}) | attempt {failed_attempts} of {MAX_CODE_TRIES}")
+        return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret,
+                                      error=f"Invalid code. {remaining} attempts remaining.", locked=False)
 
     return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error=None, locked=False)
 
@@ -241,6 +249,8 @@ def verify_code_page():
         return abort(404)
 
     user_id = session['pending_user_id']
+    if not has_totp_secret(user_id):
+        return redirect(url_for('setup_2fa_page'))
     username = get_username_by_id(user_id)
 
     # Check server-side lockout status
