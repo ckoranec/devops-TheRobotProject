@@ -34,11 +34,24 @@ logging.basicConfig(
 )
 
 """
-    run command in terminal first to load secret
+    run command in terminal to set FLASK_SECRET_KEY
+    powershell:
     $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
+
+    cmd:
+    for /f "delims=" %i in ('python -c "import secrets; print(secrets.token_hex(32))"') do set "FLASK_SECRET_KEY=%i"
+
+    git bash
+    export FLASK_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
 """
 app = Flask(__name__)
 app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
+if not app.secret_key:
+    if os.environ.get("APP_ENV") == "production":
+        raise RuntimeError("Set FLASK_SECRET_KEY before starting the application in production.")
+    else:
+        app.secret_key = secrets.token_hex(32)
+        print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
 
 if not app.secret_key:
     raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
@@ -155,7 +168,9 @@ def login():
     
     if user:
         user_id = int(user['id'])
-        session['pending_user_id'] = user_id
+        session.clear()
+        session['pending_mfa_user_id'] = user_id
+        session['mfa_verified'] = False
         
         # Route based on whether 2FA has already been configured
         if has_totp_secret(user_id):
@@ -168,10 +183,10 @@ def login():
 
 @app.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa_page():
-    if 'pending_user_id' not in session:
+    if 'pending_mfa_user_id' not in session:
         return abort(404)
 
-    user_id = session['pending_user_id']
+    user_id = session['pending_mfa_user_id']
     username = get_username_by_id(user_id)   # defined before any logging
     if not username:
         return abort(404)
@@ -187,7 +202,7 @@ def setup_2fa_page():
 
     if current_time < lockout_until:
         remaining_seconds = int(lockout_until - current_time)
-        logging.warning(f"Lockout active block | setup-2fa | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
+        logging.warning(f"Lockout active block | set.up-2fa | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
         return render_template_string(SETUP_HTML, qr_base64="", secret="",
                                       error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
 
@@ -222,8 +237,9 @@ def setup_2fa_page():
         if verify_2fa(user_id, user_input_code):
             confirm_totp_secret(user_id)
             reset_totp_attempts(user_id)
-            session.pop('pending_user_id', None)
-            session['user_id'] = user_id
+            session.pop('pending_mfa_user_id', None)
+            session['authenticated_user_id'] = user_id
+            session['mfa_verified'] = True
             logging.info(f"2FA Setup verification success | user_id={user_id} ({username})")
             return redirect(url_for('dashboard'))
 
@@ -245,10 +261,10 @@ def setup_2fa_page():
 
 @app.route('/verify-code', methods=['GET', 'POST'])
 def verify_code_page():
-    if 'pending_user_id' not in session:
+    if 'pending_mfa_user_id' not in session:
         return abort(404)
 
-    user_id = session['pending_user_id']
+    user_id = session['pending_mfa_user_id']
     if not has_totp_secret(user_id):
         return redirect(url_for('setup_2fa_page'))
     username = get_username_by_id(user_id)
@@ -274,8 +290,9 @@ def verify_code_page():
         
         if verify_2fa(user_id, user_input_code):
             reset_totp_attempts(user_id)
-            session.pop('pending_user_id', None)
-            session['user_id'] = user_id
+            session.pop('pending_mfa_user_id', None)
+            session['authenticated_user_id'] = user_id
+            session['mfa_verified'] = True
             logging.info(f"2FA verification success | user_id={user_id} ({username})")
             return redirect(url_for('dashboard'))
         else:
@@ -296,7 +313,7 @@ def verify_code_page():
 
 @app.route('/dashboard')
 def dashboard():
-    if 'user_id' not in session:
+    if not session.get('mfa_verified') or 'authenticated_user_id' not in session:
         return abort(404)
         
     return """
@@ -308,7 +325,7 @@ def dashboard():
 
 @app.route('/logout')
 def logout():
-    user_id = session.get('user_id')
+    user_id = session.get('authenticated_user_id')
     if user_id:
         username = get_username_by_id(user_id)
     else:
@@ -326,7 +343,7 @@ def reset_2fa(target_user_id):
         logging.warning(f"Unauthorized reset attempt in non-debug mode | target_user_id={target_user_id} | IP={request.remote_addr}")
         return abort(403)
         
-    current_user_id = session.get('user_id') or session.get('pending_user_id')
+    current_user_id = session.get('authenticated_user_id') or session.get('pending_mfa_user_id')
     current_username= get_username_by_id(current_user_id)
     if not current_user_id:
         logging.warning(f"Unauthenticated reset attempt | target_user_id={target_user_id} | IP={request.remote_addr}")
@@ -339,7 +356,8 @@ def reset_2fa(target_user_id):
 
     remove_user_totp(target_user_id)
     session.clear()
-    session['pending_user_id'] = target_user_id
+    session['pending_mfa_user_id'] = target_user_id
+    session['mfa_verified'] = False
 
     logging.info(f"2FA reset successful | user_id={target_user_id} ({target_username}) cleared their own 2FA instance")
     return redirect(url_for('setup_2fa_page'))
@@ -446,4 +464,4 @@ VERIFY_HTML = '''
 
 if __name__ == '__main__':
     init_totp_db()
-    app.run(host="127.0.0.1", port=5051, debug=True)
+    app.run(host="127.0.0.1", debug=True)
