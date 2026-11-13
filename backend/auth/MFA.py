@@ -307,14 +307,13 @@ def logout():
 
 @app.route('/reset-2fa/<int:target_user_id>')
 def reset_2fa(target_user_id):
-    current_username= get_username_by_id(current_user_id)
-    target_username = get_username_by_id(target_user_id
-                                         )
+    target_username = get_username_by_id(target_user_id)
     if not app.debug:
         logging.warning(f"Unauthorized reset attempt in non-debug mode | target_user_id={target_user_id} | IP={request.remote_addr}")
         return abort(403)
         
     current_user_id = session.get('user_id') or session.get('pending_user_id')
+    current_username= get_username_by_id(current_user_id)
     if not current_user_id:
         logging.warning(f"Unauthenticated reset attempt | target_user_id={target_user_id} | IP={request.remote_addr}")
         return abort(403)
