@@ -53,8 +53,7 @@ if not app.secret_key:
         app.secret_key = secrets.token_hex(32)
         print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
 
-if not app.secret_key:
-    raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
+
 
 def init_totp_db():
     conn = sqlite3.connect(TOTP_DB_PATH)
