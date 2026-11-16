@@ -6,6 +6,7 @@
 
 # import libaries and tools for html login, authentication, sessions and Pw/user read
 import os
+import logging
 from flask import Flask, render_template_string, request, redirect, url_for, session
 
 try:
@@ -15,8 +16,27 @@ except ImportError:
     from database import get_user_by_username
     from password_hashing import verify_password
 
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)-7s | %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+    handlers=[
+        logging.FileHandler(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)),"account_activity.log"), encoding="utf-8"
+            ),
+        logging.StreamHandler()
+    ]
+)
 
 app = Flask(__name__)
+app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
+if not app.secret_key:
+    if os.environ.get("APP_ENV") == "production":
+        raise RuntimeError("Set FLASK_SECRET_KEY before starting the application in production.")
+    else:
+        app.secret_key = secrets.token_hex(32)
+        print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
+app.register_blueprint(mfa_bp, url_prefix="/mfa")
 
 # Flask uses this key to sign session cookies
 # Store it in an environment variable - NOT in Git
