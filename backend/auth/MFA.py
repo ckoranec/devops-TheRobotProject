@@ -201,7 +201,7 @@ def setup_2fa_page():
 
     if current_time < lockout_until:
         remaining_seconds = int(lockout_until - current_time)
-        logging.warning(f"Lockout active block | set.up-2fa | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
+        logging.warning(f"Lockout active block | setup-2fa | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
         return render_template_string(SETUP_HTML, qr_base64="", secret="",
                                       error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
 
