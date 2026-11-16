@@ -8,12 +8,17 @@ import logging
 
 import pyotp
 import qrcode
-from flask import Flask, redirect, render_template_string, request, session, url_for, abort
+from flask import Flask, redirect, render_template_string, request, session, url_for, abort, Blueprint, current_app
 
-from seed_users import DB_FILE
-from campus_login import find_identity
+try:
+    from .database import get_user_by_id
+except ImportError:
+    from database import get_user_by_id
 
-USER_DB_PATH = DB_FILE          
+mfa_bp = Blueprint("mfa", __name__)
+
+
+  
 TOTP_DB_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),"totp.db" 
 )      
@@ -52,7 +57,7 @@ if not app.secret_key:
     else:
         app.secret_key = secrets.token_hex(32)
         print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
-
+current_app.register_blueprint(mfa_bp, url_prefix="/mfa")
 
 
 def init_totp_db():
@@ -126,12 +131,8 @@ def get_username_by_id(user_id):
     #Helper to fetch username from users.db by user_id
     if not user_id:
         return None
-    conn = sqlite3.connect(USER_DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else None
+    user = get_user_by_id(user_id)
+    return user[1] if user else None
 
 def clear_totp_db():
     #Drops and re-initializes the TOTP table to clear all stored secrets
@@ -153,34 +154,9 @@ def remove_user_totp(user_id):
     conn.close()
     print(f"TOTP instance removed for user_id: {user_id}")
 
-@app.route('/')
-def index():
-    return render_template_string(LOGIN_HTML, error=None)
 
 
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    
-    user = find_identity(username, password)
-    
-    if user:
-        user_id = int(user['id'])
-        session.clear()
-        session['pending_mfa_user_id'] = user_id
-        session['mfa_verified'] = False
-        
-        # Route based on whether 2FA has already been configured
-        if has_totp_secret(user_id):
-            return redirect(url_for('verify_code_page'))
-        else:
-            return redirect(url_for('setup_2fa_page'))
-            
-    return render_template_string(LOGIN_HTML, error="Invalid username or password.")
-
-
-@app.route('/setup-2fa', methods=['GET', 'POST'])
+@mfa_bp.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa_page():
     if 'pending_mfa_user_id' not in session:
         return abort(404)
@@ -192,7 +168,7 @@ def setup_2fa_page():
 
     # Only a CONFIRMED secret blocks setup
     if has_totp_secret(user_id):
-        return redirect(url_for('verify_code_page'))
+        return redirect(url_for('mfa.verify_code_page'))
 
     row = get_totp_record(user_id)           # may be an unconfirmed pending secret
     failed_attempts = row[1] if row else 0
@@ -240,7 +216,7 @@ def setup_2fa_page():
             session['authenticated_user_id'] = user_id
             session['mfa_verified'] = True
             logging.info(f"2FA Setup verification success | user_id={user_id} ({username})")
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('staff_page'))
 
         failed_attempts += 1
         if failed_attempts >= MAX_CODE_TRIES:
@@ -258,14 +234,14 @@ def setup_2fa_page():
     return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error=None, locked=False)
 
 
-@app.route('/verify-code', methods=['GET', 'POST'])
+@mfa_bp.route('/verify-code', methods=['GET', 'POST'])
 def verify_code_page():
     if 'pending_mfa_user_id' not in session:
         return abort(404)
 
     user_id = session['pending_mfa_user_id']
     if not has_totp_secret(user_id):
-        return redirect(url_for('setup_2fa_page'))
+        return redirect(url_for('mfa.setup_2fa_page'))
     username = get_username_by_id(user_id)
 
     # Check server-side lockout status
@@ -293,7 +269,7 @@ def verify_code_page():
             session['authenticated_user_id'] = user_id
             session['mfa_verified'] = True
             logging.info(f"2FA verification success | user_id={user_id} ({username})")
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('staff_page'))
         else:
             failed_attempts += 1
             if failed_attempts >= MAX_CODE_TRIES:
@@ -310,35 +286,10 @@ def verify_code_page():
     return render_template_string(VERIFY_HTML, error=None, locked=False)
 
 
-@app.route('/dashboard')
-def dashboard():
-    if not session.get('mfa_verified') or 'authenticated_user_id' not in session:
-        return abort(404)
-        
-    return """
-        <h2>Welcome to your Secure Dashboard!</h2>
-        <p>You have successfully passed both password authentication and 2FA.</p>
-        <a href="/logout">Logout</a>
-    """
-
-
-@app.route('/logout')
-def logout():
-    user_id = session.get('authenticated_user_id')
-    if user_id:
-        username = get_username_by_id(user_id)
-    else:
-        logging.warning("Unknown user logout attempted without active session")
-        username = "Unknown"
-    session.clear()
-    logging.info(f"User logout | user_id={user_id} ({username})")
-    return redirect(url_for('index'))
-
-
-@app.route('/reset-2fa/<int:target_user_id>')
+@mfa_bp.route('/reset-2fa/<int:target_user_id>')
 def reset_2fa(target_user_id):
     target_username = get_username_by_id(target_user_id)
-    if not app.debug:
+    if not current_app.debug:
         logging.warning(f"Unauthorized reset attempt in non-debug mode | target_user_id={target_user_id} | IP={request.remote_addr}")
         return abort(403)
         
@@ -359,25 +310,11 @@ def reset_2fa(target_user_id):
     session['mfa_verified'] = False
 
     logging.info(f"2FA reset successful | user_id={target_user_id} ({target_username}) cleared their own 2FA instance")
-    return redirect(url_for('setup_2fa_page'))
+    return redirect(url_for('mfa.setup_2fa_page'))
 
 
 # --- HTML & CSS TEMPLATES ---
-LOGIN_HTML = '''
-<!DOCTYPE html>
-<html>
-<head><title>Login</title></head>
-<body>
-    <h2>Staff Login</h2>
-    {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
-    <form method="POST" action="/login">
-        <input type="text" name="username" placeholder="Username" required><br><br>
-        <input type="password" name="password" placeholder="Password" required><br><br>
-        <button type="submit">Login</button>
-    </form>
-</body>
-</html>
-'''
+
  
 SETUP_HTML = '''
 <!DOCTYPE html>
