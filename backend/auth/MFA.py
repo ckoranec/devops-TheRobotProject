@@ -463,4 +463,4 @@ VERIFY_HTML = '''
 
 if __name__ == '__main__':
     init_totp_db()
-    app.run(host="127.0.0.1", debug=True)
+    app.run(host="127.0.0.1",port=5051, debug=True)
