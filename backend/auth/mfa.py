@@ -39,14 +39,19 @@ def init_totp_db():
             totp_secret TEXT NOT NULL,
             failed_attempts INTEGER DEFAULT 0,
             lockout_until REAL DEFAULT 0.0,
-            confirmed INTEGER NOT NULL DEFAULT 0
+            confirmed INTEGER NOT NULL DEFAULT 0,
             last_step INTEGER NOT NULL DEFAULT 0
         )
     """)
-    try:
+    existing_cols = {
+    row[1] for row in cursor.execute("PRAGMA table_info(totp_secrets)")
+}
+
+    if "last_step" not in existing_cols:
         cursor.execute("ALTER TABLE totp_secrets ADD COLUMN last_step INTEGER NOT NULL DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
+
+    if "confirmed" not in existing_cols:
+        cursor.execute("ALTER TABLE totp_secrets ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 1")
     conn.commit()
     conn.close()
 
