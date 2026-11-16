@@ -5,7 +5,7 @@ import sqlite3
 import time
 import os
 import logging
-
+import hmac
 import pyotp
 import qrcode
 from flask import Flask, redirect, render_template_string, request, session, url_for, abort, Blueprint, current_app
@@ -40,12 +40,13 @@ def init_totp_db():
             failed_attempts INTEGER DEFAULT 0,
             lockout_until REAL DEFAULT 0.0,
             confirmed INTEGER NOT NULL DEFAULT 0
+            last_step INTEGER NOT NULL DEFAULT 0
         )
     """)
     try:
-        cursor.execute("ALTER TABLE totp_secrets ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 1")
+        cursor.execute("ALTER TABLE totp_secrets ADD COLUMN last_step INTEGER NOT NULL DEFAULT 0")
     except sqlite3.OperationalError:
-        pass  # column already exist
+        pass
     conn.commit()
     conn.close()
 
@@ -73,18 +74,52 @@ def update_totp_attempts(user_id, failed_attempts, lockout_until):
     conn.commit()
     conn.close()
 
+def get_last_step(user_id):
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    try:
+        row = conn.execute(
+            "SELECT last_step FROM totp_secrets WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        return row[0] if row else 0
+    finally:
+        conn.close()
+
+def claim_step(user_id, step):
+    """Atomically record a step. Returns False if it was already used."""
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    try:
+        cur = conn.execute(
+            "UPDATE totp_secrets SET last_step = ? WHERE user_id = ? AND last_step < ?",
+            (step, user_id, step),
+        )
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
+
 def reset_totp_attempts(user_id):
     update_totp_attempts(user_id, 0, 0.0)
 
 def verify_2fa(user_id, user_input_code):
+    code = (user_input_code or "").strip()
+    # Reject malformed input first. compare_digest raises TypeError on non-ASCII strings.
+    if not (code.isascii() and code.isdigit() and len(code) == 6):
+        return False
+
     row = get_totp_record(user_id)
     if not row or not row[0]:
         return False
-        
-    stored_secret = row[0]
-    totp = pyotp.TOTP(stored_secret)
-    # valid_window=1 handles minor clock drift between server and authenticator app
-    return totp.verify(user_input_code, valid_window=1)
+
+    totp = pyotp.TOTP(row[0])
+    now_step = int(time.time() // 30)
+    last_step = get_last_step(user_id)      # fetched once, not per loop iteration
+
+    for step in (now_step - 1, now_step, now_step + 1):
+        if step <= last_step:
+            continue                         # this step (or an older one) was already used
+        if hmac.compare_digest(totp.at(step * 30), code):
+            return claim_step(user_id, step)
+    return False
 
 def has_totp_secret(user_id):
     row = get_totp_record(user_id)
@@ -255,30 +290,34 @@ def verify_code_page():
     return render_template_string(VERIFY_HTML, error=None, locked=False)
 
 
-@mfa_bp.route('/reset-2fa/<int:target_user_id>')
-def reset_2fa(target_user_id):
-    target_username = get_username_by_id(target_user_id)
+@mfa_bp.route('/reset-2fa', methods=['POST'])
+def reset_2fa():
+    # Dev-only gate. Fails closed: blocked unless Flask is running in debug mode.
     if not current_app.debug:
-        logging.warning(f"Unauthorized reset attempt in non-debug mode | target_user_id={target_user_id} | IP={request.remote_addr}")
-        return abort(403)
-        
-    current_user_id = session.get('authenticated_user_id') or session.get('pending_mfa_user_id')
-    current_username= get_username_by_id(current_user_id)
-    if not current_user_id:
-        logging.warning(f"Unauthenticated reset attempt | target_user_id={target_user_id} | IP={request.remote_addr}")
-        return abort(403)
-        
-    # Prevent users from resetting someone else's 2FA account
-    if current_user_id != target_user_id:
-        logging.error(f"SECURITY VIOLATION: Cross-user 2FA reset attempt blocked! | actor_id={current_user_id} ({current_username}) tried to reset target_user_id={target_user_id}")
-        return abort(403)
+        logging.warning(f"Blocked 2FA reset (non-debug mode) | IP={request.remote_addr}")
+        abort(403)
 
-    remove_user_totp(target_user_id)
+    # Require a fully verified session (password AND 2FA completed).
+    # A password-only "pending" session must never be able to reset 2FA.
+    user_id = session.get('authenticated_user_id')
+    if not user_id or not session.get('mfa_verified'):
+        logging.warning(f"Unauthenticated 2FA reset attempt | IP={request.remote_addr}")
+        abort(403)
+
+    username = get_username_by_id(user_id)
+    if not username:
+        session.clear()
+        abort(404)
+
+    remove_user_totp(user_id)
+
+    # Downgrade to a pending session so the user must re-enroll
     session.clear()
-    session['pending_mfa_user_id'] = target_user_id
+    session['pending_mfa_user_id'] = user_id
     session['mfa_verified'] = False
+    session['pending_started'] = time.time()   # only matters if you add pending_expired()
 
-    logging.info(f"2FA reset successful | user_id={target_user_id} ({target_username}) cleared their own 2FA instance")
+    logging.info(f"2FA reset successful | user_id={user_id} ({username}) cleared their own 2FA")
     return redirect(url_for('mfa.setup_2fa_page'))
 
 
