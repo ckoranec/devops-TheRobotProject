@@ -1,5 +1,6 @@
+# 2026-11-16 ? David Noyes ? Update references to the renamed campus provider.
 # 2026-11-13 — David Noyes — Card 4 simulated campus identity provider.
-# Run from the project root: python -m campus_sso.campus_login
+# Run from the project root: python -m campus_sso.campus_provider
 
 # Import web tools, token validation, and the existing campus database lookup.
 import os

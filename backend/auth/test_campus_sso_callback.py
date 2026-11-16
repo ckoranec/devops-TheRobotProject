@@ -1,3 +1,4 @@
+# 2026-11-16 ? David Noyes ? Update references to the renamed campus provider.
 # 2026-11-13 — David Noyes — Card 4 staff callback tests.
 # These substitutes test the callback; they do not implement real staff login.
 
@@ -8,7 +9,7 @@ from urllib.parse import parse_qs, urlparse
 import pytest
 from flask import Flask
 
-from campus_sso.campus_login import (
+from campus_sso.campus_provider import (
     make_token,
     register_staff_sso,
     token_serializer,
