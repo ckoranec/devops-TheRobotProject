@@ -25,39 +25,8 @@ TOTP_DB_PATH = os.path.join(
 PENDING_SECONDS = 300           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
 
-# Configure logging to write to both a file and the terminal
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-7s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)),"account_activity.log"), encoding="utf-8"
-            ),
-        logging.StreamHandler()
-    ]
-)
 
-"""
-    run command in terminal to set FLASK_SECRET_KEY
-    powershell:
-    $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
 
-    cmd:
-    for /f "delims=" %i in ('python -c "import secrets; print(secrets.token_hex(32))"') do set "FLASK_SECRET_KEY=%i"
-
-    git bash
-    export FLASK_SECRET_KEY=$(python -c "import secrets; print(secrets.token_hex(32))")
-"""
-app = Flask(__name__)
-app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
-if not app.secret_key:
-    if os.environ.get("APP_ENV") == "production":
-        raise RuntimeError("Set FLASK_SECRET_KEY before starting the application in production.")
-    else:
-        app.secret_key = secrets.token_hex(32)
-        print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
-current_app.register_blueprint(mfa_bp, url_prefix="/mfa")
 
 
 def init_totp_db():
@@ -398,6 +367,3 @@ VERIFY_HTML = '''
 </html>
 '''
 
-if __name__ == '__main__':
-    init_totp_db()
-    app.run(host="127.0.0.1",port=5051, debug=True)
