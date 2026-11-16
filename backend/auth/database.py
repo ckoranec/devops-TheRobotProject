@@ -28,6 +28,25 @@ def get_user_by_username(username):
     finally:
         conn.close()
 
+def get_user_by_id(user_id):
+    """Retrieve a user from the database by id."""
+
+    conn = sqlite3.connect(DB_FILE)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT id, username, password_hash FROM users WHERE id = ?",
+            (user_id,)
+        )
+
+        user = cursor.fetchone()
+        return user
+
+    finally:
+        conn.close()
+
 def update_user_password(username, new_password_hash):
     # Update a user's stored password hash
 
