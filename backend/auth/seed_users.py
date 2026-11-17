@@ -89,3 +89,4 @@ def seed_database(num_users=20):
 if __name__ == "__main__":
     create_users_table()
     print("Staff users table initialized successfully.")
+    seed_database()
