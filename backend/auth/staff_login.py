@@ -7,47 +7,36 @@
 # import libaries and tools for html login, authentication, sessions and Pw/user read
 import os
 import logging
-from flask import Flask, render_template_string, request, redirect, url_for, session
+from flask import Flask, render_template_string, request, redirect, url_for, session, Blueprint
+from flask.sansio.blueprints import Blueprint
 
 try:
     from .database import get_user_by_username
     from .password_hashing import verify_password
+    from .mfa import mfa_bp, init_totp_db
 except ImportError:
     from database import get_user_by_username
     from password_hashing import verify_password
+    from mfa import mfa_bp, init_totp_db
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-7s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)),"account_activity.log"), encoding="utf-8"
-            ),
-        logging.StreamHandler()
-    ]
-)
+staff_bp = Blueprint("Staff", __name__)
 
 app = Flask(__name__)
-app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
-if not app.secret_key:
-    if os.environ.get("APP_ENV") == "production":
-        raise RuntimeError("Set FLASK_SECRET_KEY before starting the application in production.")
-    else:
-        app.secret_key = secrets.token_hex(32)
-        print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
-app.register_blueprint(mfa_bp, url_prefix="/mfa")
 
-# Flask uses this key to sign session cookies
-# Store it in an environment variable - NOT in Git
+# Flask uses this key to protect session cookies
+# Stores it in an environment variable, never in git
+
 app.secret_key = os.environ.get("FLASK_SECRET_KEY")
 
 if not app.secret_key:
     raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
 
+# Connect Shek's MFA routes to our Flask application
+app.register_blueprint(mfa_bp, url_prefix="/mfa")
 
 
-@app.route("/")
+
+@staff_bp.route("/")
 def home():
     return render_template_string("""
         <!DOCTYPE html>
@@ -84,7 +73,7 @@ def home():
 
     """)
 
-@app.route("/login", methods=["POST"])
+@staff_bp.route("/login", methods=["POST"])
 def login():
 
     # Clear any previous authentication session before checking credentials
@@ -112,15 +101,11 @@ def login():
     session["pending_mfa_user_id"] = user[0]
     session["mfa_verified"] = False
 
-    return render_template_string("""
-        <h2>Password verified. MFA verification required.</h2>
-        <form action="/logout" method="POST">
-            <button type="submit">Log Out</button>
-        </form>
-    """)
+    # Sends the user to MFA after successful password verification
+    return redirect(url_for("mfa.verify_code_page"))
 
 
-@app.route("/staff")
+@staff_bp.route("/staff")
 def staff_page():
 
     # Deny access unless the user has completed MFA
@@ -134,7 +119,7 @@ def staff_page():
     return "Welcome to the GMU Robot Project staff area!"
 
 
-@app.route("/recover")
+@staff_bp.route("/recover")
 def recover_account():
 
     # Display the recovery code entry form
@@ -163,14 +148,14 @@ def recover_account():
     """)
 
 
-@app.route("/logout", methods=["POST"])
+@staff_bp.route("/logout", methods=["POST"])
 def logout():
 
     # Clear the user's authentication session
     session.clear()
 
     # Send the user back to the login page
-    return redirect(url_for("home"))
+    return redirect(url_for("staff.home"))
 
 
 if __name__ == "__main__":
