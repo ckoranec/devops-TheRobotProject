@@ -33,6 +33,7 @@ if not app.secret_key:
 
 # Connect Shek's MFA routes to our Flask application
 app.register_blueprint(mfa_bp, url_prefix="/mfa")
+app.register_blueprint(staff_bp)
 
 
 
