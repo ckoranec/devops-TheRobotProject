@@ -4,8 +4,8 @@ import secrets
 
 from flask import Flask
 
-from staff_login import staff_bp
-from mfa import mfa_bp, init_totp_db
+from .staff_login import staff_bp
+from .mfa import mfa_bp, init_totp_db
 
 
 
