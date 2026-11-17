@@ -25,10 +25,6 @@ TOTP_DB_PATH = os.path.join(
 PENDING_SECONDS = 300           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
 
-
-
-
-
 def init_totp_db():
     conn = sqlite3.connect(TOTP_DB_PATH)
     cursor = conn.cursor()
@@ -45,7 +41,7 @@ def init_totp_db():
     """)
     existing_cols = {
     row[1] for row in cursor.execute("PRAGMA table_info(totp_secrets)")
-}
+        }
 
     if "last_step" not in existing_cols:
         cursor.execute("ALTER TABLE totp_secrets ADD COLUMN last_step INTEGER NOT NULL DEFAULT 0")
@@ -225,7 +221,7 @@ def setup_2fa_page():
             session['authenticated_user_id'] = user_id
             session['mfa_verified'] = True
             logging.info(f"2FA Setup verification success | user_id={user_id} ({username})")
-            return redirect(url_for('staff_page'))
+            return redirect(url_for('staff.staff_page'))
 
         failed_attempts += 1
         if failed_attempts >= MAX_CODE_TRIES:
@@ -278,7 +274,7 @@ def verify_code_page():
             session['authenticated_user_id'] = user_id
             session['mfa_verified'] = True
             logging.info(f"2FA verification success | user_id={user_id} ({username})")
-            return redirect(url_for('staff_page'))
+            return redirect(url_for('staff.staff_page'))
         else:
             failed_attempts += 1
             if failed_attempts >= MAX_CODE_TRIES:

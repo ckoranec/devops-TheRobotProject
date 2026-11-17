@@ -8,7 +8,7 @@
 import os
 import logging
 from flask import Flask, render_template_string, request, redirect, url_for, session, Blueprint
-from flask.sansio.blueprints import Blueprint
+
 
 try:
     from .database import get_user_by_username
@@ -19,21 +19,9 @@ except ImportError:
     from password_hashing import verify_password
     from mfa import mfa_bp, init_totp_db
 
-staff_bp = Blueprint("Staff", __name__)
+staff_bp = Blueprint("staff", __name__)
 
-app = Flask(__name__)
 
-# Flask uses this key to protect session cookies
-# Stores it in an environment variable, never in git
-
-app.secret_key = os.environ.get("FLASK_SECRET_KEY")
-
-if not app.secret_key:
-    raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
-
-# Connect Shek's MFA routes to our Flask application
-app.register_blueprint(mfa_bp, url_prefix="/mfa")
-app.register_blueprint(staff_bp)
 
 
 
@@ -159,5 +147,4 @@ def logout():
     return redirect(url_for("staff.home"))
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+
