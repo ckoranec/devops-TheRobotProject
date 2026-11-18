@@ -13,11 +13,11 @@ import pytest
 
 from backend.auth import database, mfa
 from backend.auth.campus_directory import seed_campus_accounts
-from backend.auth.campus_staff_app import create_app
+from backend.auth.campus_staff_app import create_app, register_campus_sso
 from backend.auth.password_hashing import hash_password
 from campus_sso.campus_provider import create_provider
 
-BASE = "http://127.0.0.1:5000"
+BASE = "http://127.0.0.1:5051"
 PROVIDER = "http://127.0.0.1:5052"
 
 
@@ -51,7 +51,7 @@ def setup(tmp_path, monkeypatch):
     for name in (
         "CAMPUS_SSO_SIGNING_KEY",
         "CAMPUS_IDP_COOKIE_SECRET",
-        "CAMPUS_DEMO_COOKIE_SECRET",
+        "FLASK_SECRET_KEY",
     ):
         monkeypatch.setenv(name, secrets.token_urlsafe(48))
 
@@ -286,7 +286,7 @@ def test_missing_mapping_table_fails_at_startup(setup):
 
 def test_local_host_required(setup):
     client = setup[0]
-    assert client.get("http://localhost:5000/campus").status_code == 403
+    assert client.get("http://localhost:5051/campus").status_code == 403
     assert client.get(BASE + "/campus").status_code == 200
 
 
@@ -325,3 +325,24 @@ def test_campus_outcome_is_logged(
     # Confirm the password and signed proof did not enter captured logs.
     assert password not in caplog.text
     assert token not in caplog.text
+
+
+# 2026-11-18 - David Noyes - Confirm reuse of the real shared application.
+def test_shared_blueprints_registered_once(setup):
+    app = setup[0].application
+    assert "staff" in app.blueprints
+    assert "mfa" in app.blueprints
+    before = list(app.url_map.iter_rules())
+    assert register_campus_sso(app) is app
+    assert list(app.url_map.iter_rules()) == before
+
+
+def test_provider_posts_to_shared_callback(setup):
+    from campus_sso.campus_provider import CALLBACK_URL
+    assert CALLBACK_URL == BASE + "/auth/campus/callback"
+    client = begin_campus_mfa(setup)
+    assert client.get(BASE + "/staff").status_code == 403
+
+
+def test_old_receiver_port_is_refused(setup):
+    assert setup[0].get("http://127.0.0.1:5000/campus").status_code == 403

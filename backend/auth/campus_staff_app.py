@@ -1,18 +1,16 @@
-# 2026-11-17 - Campus SSO connection to the shared staff and MFA blueprints.
+# 2026-11-18 - David Noyes - Attach campus SSO to the imported shared app.
 # Adds a campus entry point without editing Colin's or Shek's source files.
 # Run from the repository root: python -m backend.auth.campus_staff_app
 
-import logging
 import sqlite3
-import tempfile
 import time
 from pathlib import Path
 
-from flask import Flask, redirect, render_template_string, request, session, url_for
+from flask import redirect, render_template_string, request, session, url_for
 
 from backend.auth import database
-from backend.auth.staff_login import staff_bp
-from backend.auth.mfa import mfa_bp, init_totp_db, PENDING_SECONDS
+from backend.auth.app import create_app as create_shared_app
+from backend.auth.mfa import PENDING_SECONDS
 from campus_sso.campus_provider import read_secret, register_staff_sso
 
 
@@ -57,27 +55,19 @@ def check_database_setup():
         raise RuntimeError("Cannot read the existing users.db. Check local setup.") from error
 
 
-def create_app():
-    # Keep campus login, MFA, and staff routes in ONE app and ONE session.
-    app = Flask(__name__)
-    app.secret_key = read_secret("CAMPUS_DEMO_COOKIE_SECRET")
-    app.config["SESSION_COOKIE_NAME"] = "maxbytes_campus_staff"
-    app.config["SESSION_COOKIE_HTTPONLY"] = True
-    app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
-    app.config["MAX_CONTENT_LENGTH"] = 16384
+def register_campus_sso(app):
+    """Attach Dave's campus routes to an existing shared Flask application."""
+    if app.extensions.get("dave_campus_sso"):
+        return app
     check_database_setup()
-    init_totp_db()
-
-    # These are the real team routes, imported without changing their files.
-    app.register_blueprint(staff_bp)
-    app.register_blueprint(mfa_bp)
+    app.config["MAX_CONTENT_LENGTH"] = 16384
 
     @app.before_request
     def check_local_request():
         if request.remote_addr not in {"127.0.0.1", "::1"}:
             return "Local demonstration only.", 403
-        if request.host != "127.0.0.1:5000":
-            return "Use http://127.0.0.1:5000/campus.", 403
+        if request.host != "127.0.0.1:5051":
+            return "Use http://127.0.0.1:5051/campus.", 403
 
         # A new campus attempt must not retain an earlier authenticated session.
         if request.path == "/auth/campus/start":
@@ -142,15 +132,19 @@ def create_app():
             response.content_type = "text/html; charset=utf-8"
         return response
 
+    app.extensions["dave_campus_sso"] = True
     return app
 
 
+def create_app():
+    # Reuse the team factory; it registers staff and MFA exactly once.
+    read_secret("FLASK_SECRET_KEY")
+    read_secret("CAMPUS_SSO_SIGNING_KEY")
+    check_database_setup()
+    app = create_shared_app()
+    return register_campus_sso(app)
+
+
 if __name__ == "__main__":
-    # Local integration log stays outside the repository; this is not a production audit service.
-    log_path = Path(tempfile.gettempdir()) / "maxbytes_campus_staff.log"
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s | %(levelname)s | %(message)s",
-        handlers=[logging.FileHandler(log_path, encoding="utf-8"), logging.StreamHandler()],
-    )
-    create_app().run(host="127.0.0.1", port=5000, debug=False)
+    # Use the shared application's account_activity.log configuration.
+    create_app().run(host="127.0.0.1", port=5051, debug=False)
