@@ -1,6 +1,6 @@
 # LOCAL DEVELOPMENT SETUP:
 # Before running this script, execute the following command in PowerShell:
-# $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
+# $env:FLASK_SECRET_KEY = (python -c "import secrets; print(secrets.token_hex(32))")
 #
 # Then run: python -m backend.auth.app
 
@@ -82,13 +82,19 @@ def login():
     if not verify_password(stored_hash, password):
         return "Invalid username or password.", 401
 
-    # Password was verified, but MFA has not been completed yet via Shek's script
-    session["pending_mfa_user_id"] = user[0]
+    # Credentials are verified, initiates the shared staff MFA login process
+    return begin_staff_login(user[0])
+
+def begin_staff_login(staff_id):
+    # Clears any previous authentication session
+    session.clear()
+
+    # Identifies the staff user who needs to complete MFA
+    session["pending_mfa_user_id"] = staff_id
     session["mfa_verified"] = False
 
-    # Sends the user to MFA after successful password verification
+    # Sends the staff user to Shek's MFA verification page
     return redirect(url_for("mfa.verify_code_page"))
-
 
 @staff_bp.route("/staff")
 def staff_page():
@@ -101,7 +107,7 @@ def staff_page():
     if not session.get("authenticated_user_id"):
         return "Access denied. Please log in.", 403
 
-        # Display the protected staff page with a logout button
+    # Displays the protected staff page with an added logout button
     return render_template_string("""
            <!DOCTYPE html>
            <html>
