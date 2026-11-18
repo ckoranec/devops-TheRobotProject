@@ -2,7 +2,7 @@
 # Before running this script, execute the following command in PowerShell:
 # $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
 #
-# Then run: python backend/auth/staff_login.py
+# Then run: python -m backend.auth.app
 
 # import libaries and tools for html login, authentication, sessions and Pw/user read
 import os
@@ -20,10 +20,6 @@ except ImportError:
     from mfa import mfa_bp, init_totp_db
 
 staff_bp = Blueprint("staff", __name__)
-
-
-
-
 
 @staff_bp.route("/")
 def home():
@@ -105,7 +101,22 @@ def staff_page():
     if not session.get("authenticated_user_id"):
         return "Access denied. Please log in.", 403
 
-    return "Welcome to the GMU Robot Project staff area!"
+        # Display the protected staff page with a logout button
+    return render_template_string("""
+           <!DOCTYPE html>
+           <html>
+           <head>
+               <title>GMU Staff Area</title>
+           </head>
+           <body>
+               <h1>Welcome to the GMU Robot Project staff area!</h1>
+
+               <form action="{{ url_for('staff.logout') }}" method="POST">
+                   <button type="submit">Log Out</button>
+               </form>
+           </body>
+           </html>
+       """)
 
 
 @staff_bp.route("/recover")
