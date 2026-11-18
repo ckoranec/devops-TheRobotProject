@@ -1,9 +1,10 @@
-﻿# 2026-11-10 — David Noyes — Campus SSO provider launcher.
+# 2026-11-16 ? David Noyes ? Update references to the renamed campus provider.
+# 2026-11-10 — David Noyes — Campus SSO provider launcher.
 # Import the separate provider without duplicating its implementation.
 # Preserve backend/auth/campus_login.py because teammates depend on it.
 # Run from the project root: python -m backend.auth.campus_sso_login
 
-from campus_sso.campus_login import create_provider  # Reuse the existing provider.
+from campus_sso.campus_provider import create_provider  # Reuse the existing provider.
 
 
 if __name__ == "__main__":  # Start only when explicitly executed.

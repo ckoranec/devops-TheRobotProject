@@ -2,32 +2,26 @@
 # Before running this script, execute the following command in PowerShell:
 # $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
 #
-# Then run: python backend/auth/staff_login.py
+# Then run: python -m backend.auth.app
 
 # import libaries and tools for html login, authentication, sessions and Pw/user read
 import os
-from flask import Flask, render_template_string, request, redirect, url_for, session
+import logging
+from flask import Flask, render_template_string, request, redirect, url_for, session, Blueprint
+
 
 try:
     from .database import get_user_by_username
     from .password_hashing import verify_password
+    from .mfa import mfa_bp, init_totp_db
 except ImportError:
     from database import get_user_by_username
     from password_hashing import verify_password
+    from mfa import mfa_bp, init_totp_db
 
+staff_bp = Blueprint("staff", __name__)
 
-app = Flask(__name__)
-
-# Flask uses this key to sign session cookies
-# Store it in an environment variable - NOT in Git
-app.secret_key = os.environ.get("FLASK_SECRET_KEY")
-
-if not app.secret_key:
-    raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
-
-
-
-@app.route("/")
+@staff_bp.route("/")
 def home():
     return render_template_string("""
         <!DOCTYPE html>
@@ -64,7 +58,7 @@ def home():
 
     """)
 
-@app.route("/login", methods=["POST"])
+@staff_bp.route("/login", methods=["POST"])
 def login():
 
     # Clear any previous authentication session before checking credentials
@@ -92,15 +86,11 @@ def login():
     session["pending_mfa_user_id"] = user[0]
     session["mfa_verified"] = False
 
-    return render_template_string("""
-        <h2>Password verified. MFA verification required.</h2>
-        <form action="/logout" method="POST">
-            <button type="submit">Log Out</button>
-        </form>
-    """)
+    # Sends the user to MFA after successful password verification
+    return redirect(url_for("mfa.verify_code_page"))
 
 
-@app.route("/staff")
+@staff_bp.route("/staff")
 def staff_page():
 
     # Deny access unless the user has completed MFA
@@ -111,10 +101,25 @@ def staff_page():
     if not session.get("authenticated_user_id"):
         return "Access denied. Please log in.", 403
 
-    return "Welcome to the GMU Robot Project staff area!"
+        # Display the protected staff page with a logout button
+    return render_template_string("""
+           <!DOCTYPE html>
+           <html>
+           <head>
+               <title>GMU Staff Area</title>
+           </head>
+           <body>
+               <h1>Welcome to the GMU Robot Project staff area!</h1>
+
+               <form action="{{ url_for('staff.logout') }}" method="POST">
+                   <button type="submit">Log Out</button>
+               </form>
+           </body>
+           </html>
+       """)
 
 
-@app.route("/recover")
+@staff_bp.route("/recover")
 def recover_account():
 
     # Display the recovery code entry form
@@ -143,15 +148,14 @@ def recover_account():
     """)
 
 
-@app.route("/logout", methods=["POST"])
+@staff_bp.route("/logout", methods=["POST"])
 def logout():
 
     # Clear the user's authentication session
     session.clear()
 
     # Send the user back to the login page
-    return redirect(url_for("home"))
+    return redirect(url_for("staff.home"))
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
+

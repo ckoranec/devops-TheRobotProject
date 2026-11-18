@@ -8,11 +8,16 @@ DB_FILE = os.path.join(
     "users.db"
 )
 
+def get_db_connection():
+    # Open a database connection with foreign key enforcement
+    conn = sqlite3.connect(DB_FILE)
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
 
 def get_user_by_username(username):
     """Retrieve a user from the database by username."""
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_db_connection()
 
     try:
         cursor = conn.cursor()
@@ -28,10 +33,29 @@ def get_user_by_username(username):
     finally:
         conn.close()
 
+def get_user_by_id(user_id):
+    """Retrieve a user from the database by id."""
+
+    conn = sqlite3.connect(DB_FILE)
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            "SELECT id, username, password_hash FROM users WHERE id = ?",
+            (user_id,)
+        )
+
+        user = cursor.fetchone()
+        return user
+
+    finally:
+        conn.close()
+
 def update_user_password(username, new_password_hash):
     # Update a user's stored password hash
 
-    conn = sqlite3.connect(DB_FILE)
+    conn = get_db_connection()
 
     try:
         cursor = conn.cursor()
@@ -49,14 +73,61 @@ def update_user_password(username, new_password_hash):
     finally:
         conn.close()
 
+def create_staff_campus_mapping():
+    # Create a table connecting campus IDs to staff user IDs
+    conn = get_db_connection()
+
+    try:
+
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS staff_campus_mapping (
+                campus_id TEXT PRIMARY KEY,
+                staff_user_id INTEGER UNIQUE NOT NULL,
+
+                FOREIGN KEY (campus_id)
+                    REFERENCES campus_accounts(campus_id),
+
+                FOREIGN KEY (staff_user_id)
+                    REFERENCES users(id)
+            )
+        """)
+
+        conn.commit()
+
+    finally:
+        conn.close()
+
+def get_staff_id_by_campus_id(campus_id):
+    # Find the staff account linked to a campus ID
+    conn = get_db_connection()
+
+    try:
+        cursor = conn.cursor()
+
+        cursor.execute(
+            """
+            SELECT staff_user_id
+            FROM staff_campus_mapping
+            WHERE campus_id = ?
+            """,
+            (campus_id,)
+        )
+
+        result = cursor.fetchone()
+
+        if result is None:
+            return None
+
+        return result[0]
+
+    finally:
+        conn.close()
 
 if __name__ == "__main__":
-    user = get_user_by_username("staff_test")
+    conn = get_db_connection()
 
-    if user:
-        print("User found!")
-        print("ID:", user[0])
-        print("Username:", user[1])
-        print("Password hash:", user[2])
-    else:
-        print("User not found.")
+    try:
+        result = conn.execute("PRAGMA foreign_keys").fetchone()
+        print("Foreign key enforcement:", result[0])
+    finally:
+        conn.close()

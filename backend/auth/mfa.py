@@ -5,39 +5,25 @@ import sqlite3
 import time
 import os
 import logging
-
+import hmac
 import pyotp
 import qrcode
-from flask import Flask, redirect, render_template_string, request, session, url_for, abort
+from flask import Flask, redirect, render_template_string, request, session, url_for, abort, Blueprint, current_app
 
-from seed_users import DB_FILE
-from campus_login import find_identity
+try:
+    from .database import get_user_by_id
+except ImportError:
+    from database import get_user_by_id
 
-USER_DB_PATH = DB_FILE          
-TOTP_DB_PATH = "totp.db"       
+mfa_bp = Blueprint("mfa", __name__)
+
+
+  
+TOTP_DB_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),"totp.db" 
+)      
 PENDING_SECONDS = 300           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
-
-# Configure logging to write to both a file and the terminal
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)-7s | %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-    handlers=[
-        logging.FileHandler("account_activity.log", encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
-
-"""
-    run command in terminal first to load secret
-    $env:FLASK_SECRET_KEY = python -c "import secrets; print(secrets.token_hex(32))"
-"""
-app = Flask(__name__)
-app.secret_key =  os.environ.get("FLASK_SECRET_KEY")
-
-if not app.secret_key:
-    raise RuntimeError("Set FLASK_SECRET_KEY before starting the application.")
 
 def init_totp_db():
     conn = sqlite3.connect(TOTP_DB_PATH)
@@ -48,9 +34,20 @@ def init_totp_db():
             user_id INTEGER PRIMARY KEY,
             totp_secret TEXT NOT NULL,
             failed_attempts INTEGER DEFAULT 0,
-            lockout_until REAL DEFAULT 0.0
+            lockout_until REAL DEFAULT 0.0,
+            confirmed INTEGER NOT NULL DEFAULT 0,
+            last_step INTEGER NOT NULL DEFAULT 0
         )
     """)
+    existing_cols = {
+    row[1] for row in cursor.execute("PRAGMA table_info(totp_secrets)")
+        }
+
+    if "last_step" not in existing_cols:
+        cursor.execute("ALTER TABLE totp_secrets ADD COLUMN last_step INTEGER NOT NULL DEFAULT 0")
+
+    if "confirmed" not in existing_cols:
+        cursor.execute("ALTER TABLE totp_secrets ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 1")
     conn.commit()
     conn.close()
 
@@ -58,7 +55,10 @@ def get_totp_record(user_id):
     init_totp_db()
     conn = sqlite3.connect(TOTP_DB_PATH)
     cursor = conn.cursor()
-    cursor.execute("SELECT totp_secret, failed_attempts, lockout_until FROM totp_secrets WHERE user_id = ?", (user_id,))
+    cursor.execute(
+        "SELECT totp_secret, failed_attempts, lockout_until, confirmed FROM totp_secrets WHERE user_id = ?",
+        (user_id,),
+    )  
     row = cursor.fetchone()
     conn.close()
     return row
@@ -75,33 +75,69 @@ def update_totp_attempts(user_id, failed_attempts, lockout_until):
     conn.commit()
     conn.close()
 
+def get_last_step(user_id):
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    try:
+        row = conn.execute(
+            "SELECT last_step FROM totp_secrets WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        return row[0] if row else 0
+    finally:
+        conn.close()
+
+def claim_step(user_id, step):
+    """Atomically record a step. Returns False if it was already used."""
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    try:
+        cur = conn.execute(
+            "UPDATE totp_secrets SET last_step = ? WHERE user_id = ? AND last_step < ?",
+            (step, user_id, step),
+        )
+        conn.commit()
+        return cur.rowcount == 1
+    finally:
+        conn.close()
+
 def reset_totp_attempts(user_id):
     update_totp_attempts(user_id, 0, 0.0)
 
 def verify_2fa(user_id, user_input_code):
+    code = (user_input_code or "").strip()
+    # Reject malformed input first. compare_digest raises TypeError on non-ASCII strings.
+    if not (code.isascii() and code.isdigit() and len(code) == 6):
+        return False
+
     row = get_totp_record(user_id)
     if not row or not row[0]:
         return False
-        
-    stored_secret = row[0]
-    totp = pyotp.TOTP(stored_secret)
-    # valid_window=1 handles minor clock drift between server and authenticator app
-    return totp.verify(user_input_code, valid_window=1)
+
+    totp = pyotp.TOTP(row[0])
+    now_step = int(time.time() // 30)
+    last_step = get_last_step(user_id)      # fetched once, not per loop iteration
+
+    for step in (now_step - 1, now_step, now_step + 1):
+        if step <= last_step:
+            continue                         # this step (or an older one) was already used
+        if hmac.compare_digest(totp.at(step * 30), code):
+            return claim_step(user_id, step)
+    return False
 
 def has_totp_secret(user_id):
     row = get_totp_record(user_id)
-    return row is not None and row[0] != ""
+    return row is not None and row[0] != "" and row[3] == 1
+
+def confirm_totp_secret(user_id):
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    conn.execute("UPDATE totp_secrets SET confirmed = 1 WHERE user_id = ?", (user_id,))
+    conn.commit()
+    conn.close()
 
 def get_username_by_id(user_id):
     #Helper to fetch username from users.db by user_id
     if not user_id:
         return None
-    conn = sqlite3.connect(USER_DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT username FROM users WHERE id = ?", (user_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else None
+    user = get_user_by_id(user_id)
+    return user[1] if user else None
 
 def clear_totp_db():
     #Drops and re-initializes the TOTP table to clear all stored secrets
@@ -123,44 +159,23 @@ def remove_user_totp(user_id):
     conn.close()
     print(f"TOTP instance removed for user_id: {user_id}")
 
-@app.route('/')
-def index():
-    return render_template_string(LOGIN_HTML, error=None)
 
 
-@app.route('/login', methods=['POST'])
-def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    
-    user = find_identity(username, password)
-    
-    if user:
-        user_id = int(user['id'])
-        session['pending_user_id'] = user_id
-        
-        # Route based on whether 2FA has already been configured
-        if has_totp_secret(user_id):
-            return redirect(url_for('verify_code_page'))
-        else:
-            return redirect(url_for('setup_2fa_page'))
-            
-    return render_template_string(LOGIN_HTML, error="Invalid username or password.")
-
-
-@app.route('/setup-2fa', methods=['GET', 'POST'])
+@mfa_bp.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa_page():
-    if 'pending_user_id' not in session:
+    if 'pending_mfa_user_id' not in session:
         return abort(404)
 
-    user_id = session['pending_user_id']
+    user_id = session['pending_mfa_user_id']
+    username = get_username_by_id(user_id)   # defined before any logging
+    if not username:
+        return abort(404)
 
-    # Block users who already have a secret from resetting via setup URL
+    # Only a CONFIRMED secret blocks setup
     if has_totp_secret(user_id):
-        return redirect(url_for('verify_code_page'))
+        return redirect(url_for('mfa.verify_code_page'))
 
-    # Check server-side lockout status
-    row = get_totp_record(user_id)
+    row = get_totp_record(user_id)           # may be an unconfirmed pending secret
     failed_attempts = row[1] if row else 0
     lockout_until = row[2] if row else 0.0
     current_time = time.time()
@@ -168,75 +183,70 @@ def setup_2fa_page():
     if current_time < lockout_until:
         remaining_seconds = int(lockout_until - current_time)
         logging.warning(f"Lockout active block | setup-2fa | user_id={user_id} ({username}) | remaining_seconds={remaining_seconds}")
-        return render_template_string(SETUP_HTML, qr_base64="", secret="", error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
+        return render_template_string(SETUP_HTML, qr_base64="", secret="",
+                                      error=f"Too many failed attempts. Try again in {remaining_seconds}s.", locked=True)
 
     if lockout_until > 0 and current_time >= lockout_until:
         reset_totp_attempts(user_id)
         failed_attempts = 0
+        lockout_until = 0.0
         logging.info(f"Lockout expired & reset | setup-2fa | user_id={user_id} ({username})")
 
-    # Fetch username for provisioning URI
-    conn_user = sqlite3.connect(USER_DB_PATH)
-    cursor_user = conn_user.cursor()
-    cursor_user.execute("SELECT username FROM users WHERE id = ?", (user_id,))
-    result = cursor_user.fetchone()
-    conn_user.close()
-    
-    if not result:
-        return abort(404)
-        
-    username = result[0]
-    
-    # Generate new secret and save it to DB with initial attempt tracking
-    secret = pyotp.random_base32()
-    init_totp_db()
-    conn_totp = sqlite3.connect(TOTP_DB_PATH)
-    cursor_totp = conn_totp.cursor()
-    cursor_totp.execute(
-        "INSERT OR REPLACE INTO totp_secrets (user_id, totp_secret, failed_attempts, lockout_until) VALUES (?, ?, ?, ?)",
-        (user_id, secret, failed_attempts, lockout_until),
-    )
-    conn_totp.commit()
-    conn_totp.close()
+    # Reuse the pending secret if there is one; only create it once
+    if row and row[0]:
+        secret = row[0]
+    else:
+        secret = pyotp.random_base32()
+        init_totp_db()
+        conn = sqlite3.connect(TOTP_DB_PATH)
+        conn.execute(
+            "INSERT OR REPLACE INTO totp_secrets (user_id, totp_secret, failed_attempts, lockout_until, confirmed) "
+            "VALUES (?, ?, 0, 0.0, 0)",
+            (user_id, secret),
+        )
+        conn.commit()
+        conn.close()
 
-    totp = pyotp.TOTP(secret)
-    uri = totp.provisioning_uri(name=username, issuer_name="Robot Project")
-
-    qr_img = qrcode.make(uri)
+    uri = pyotp.TOTP(secret).provisioning_uri(name=username, issuer_name="Robot Project")
     buffered = io.BytesIO()
-    qr_img.save(buffered, format="PNG")
+    qrcode.make(uri).save(buffered, format="PNG")
     qr_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
 
     if request.method == 'POST':
-        user_input_code = request.form.get('code')
+        user_input_code = (request.form.get('code') or "").strip()
         if verify_2fa(user_id, user_input_code):
+            confirm_totp_secret(user_id)
             reset_totp_attempts(user_id)
-            session.pop('pending_user_id', None)
-            session['user_id'] = user_id
+            session.pop('pending_mfa_user_id', None)
+            session['authenticated_user_id'] = user_id
+            session['mfa_verified'] = True
             logging.info(f"2FA Setup verification success | user_id={user_id} ({username})")
-            return redirect(url_for('dashboard'))
-        else:
-            failed_attempts += 1
-            if failed_attempts >= MAX_CODE_TRIES:
-                lockout_until = time.time() + 60
-                update_totp_attempts(user_id, failed_attempts, lockout_until)
-                logging.error(f"LOCKOUT TRIGGERED | setup-2fa | user_id={user_id} ({username}) | failed_attempts={failed_attempts}/{MAX_CODE_TRIES} | locked_for=60s")
-                return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error="Too many failed attempts. Locked out for 1 minute.", locked=True)
-            else:
-                update_totp_attempts(user_id, failed_attempts, lockout_until)
-                remaining = MAX_CODE_TRIES - failed_attempts
-                logging.warning(f"2FA Setup verification failed | user_id={user_id} ({username}) | attempt {failed_attempts} of {MAX_CODE_TRIES}")
-                return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error=f"Invalid code. {remaining} attempts remaining.", locked=False)
+            return redirect(url_for('staff.staff_page'))
+
+        failed_attempts += 1
+        if failed_attempts >= MAX_CODE_TRIES:
+            lockout_until = time.time() + 60
+            update_totp_attempts(user_id, failed_attempts, lockout_until)
+            logging.error(f"LOCKOUT TRIGGERED | setup-2fa | user_id={user_id} ({username}) | failed_attempts={failed_attempts}/{MAX_CODE_TRIES} | locked_for=60s")
+            return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret,
+                                          error="Too many failed attempts. Locked out for 1 minute.", locked=True)
+        update_totp_attempts(user_id, failed_attempts, lockout_until)
+        remaining = MAX_CODE_TRIES - failed_attempts
+        logging.warning(f"2FA Setup verification failed | user_id={user_id} ({username}) | attempt {failed_attempts} of {MAX_CODE_TRIES}")
+        return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret,
+                                      error=f"Invalid code. {remaining} attempts remaining.", locked=False)
 
     return render_template_string(SETUP_HTML, qr_base64=qr_base64, secret=secret, error=None, locked=False)
 
 
-@app.route('/verify-code', methods=['GET', 'POST'])
+@mfa_bp.route('/verify-code', methods=['GET', 'POST'])
 def verify_code_page():
-    if 'pending_user_id' not in session:
+    if 'pending_mfa_user_id' not in session:
         return abort(404)
 
-    user_id = session['pending_user_id']
+    user_id = session['pending_mfa_user_id']
+    if not has_totp_secret(user_id):
+        return redirect(url_for('mfa.setup_2fa_page'))
     username = get_username_by_id(user_id)
 
     # Check server-side lockout status
@@ -260,10 +270,11 @@ def verify_code_page():
         
         if verify_2fa(user_id, user_input_code):
             reset_totp_attempts(user_id)
-            session.pop('pending_user_id', None)
-            session['user_id'] = user_id
+            session.pop('pending_mfa_user_id', None)
+            session['authenticated_user_id'] = user_id
+            session['mfa_verified'] = True
             logging.info(f"2FA verification success | user_id={user_id} ({username})")
-            return redirect(url_for('dashboard'))
+            return redirect(url_for('staff.staff_page'))
         else:
             failed_attempts += 1
             if failed_attempts >= MAX_CODE_TRIES:
@@ -280,70 +291,39 @@ def verify_code_page():
     return render_template_string(VERIFY_HTML, error=None, locked=False)
 
 
-@app.route('/dashboard')
-def dashboard():
-    if 'user_id' not in session:
-        return abort(404)
-        
-    return """
-        <h2>Welcome to your Secure Dashboard!</h2>
-        <p>You have successfully passed both password authentication and 2FA.</p>
-        <a href="/logout">Logout</a>
-    """
+@mfa_bp.route('/reset-2fa', methods=['POST'])
+def reset_2fa():
+    # Dev-only gate. Fails closed: blocked unless Flask is running in debug mode.
+    if not current_app.debug:
+        logging.warning(f"Blocked 2FA reset (non-debug mode) | IP={request.remote_addr}")
+        abort(403)
 
+    # Require a fully verified session (password AND 2FA completed).
+    # A password-only "pending" session must never be able to reset 2FA.
+    user_id = session.get('authenticated_user_id')
+    if not user_id or not session.get('mfa_verified'):
+        logging.warning(f"Unauthenticated 2FA reset attempt | IP={request.remote_addr}")
+        abort(403)
 
-@app.route('/logout')
-def logout():
-    user_id = session.get('user_id')
-    username = get_username_by_id(user_id) if user_id else logging.warning(f"Unknown user logout")
+    username = get_username_by_id(user_id)
+    if not username:
+        session.clear()
+        abort(404)
+
+    remove_user_totp(user_id)
+
+    # Downgrade to a pending session so the user must re-enroll
     session.clear()
-    logging.info(f"User logout | user_id={user_id} ({username})")
-    return redirect(url_for('index'))
+    session['pending_mfa_user_id'] = user_id
+    session['mfa_verified'] = False
+    session['pending_started'] = time.time()   # only matters if you add pending_expired()
 
-
-@app.route('/reset-2fa/<int:target_user_id>')
-def reset_2fa(target_user_id):
-    current_username= get_username_by_id(current_user_id)
-    target_username = get_username_by_id(target_user_id
-                                         )
-    if not app.debug:
-        logging.warning(f"Unauthorized reset attempt in non-debug mode | target_user_id={target_user_id} | IP={request.remote_addr}")
-        return abort(403)
-        
-    current_user_id = session.get('user_id') or session.get('pending_user_id')
-    if not current_user_id:
-        logging.warning(f"Unauthenticated reset attempt | target_user_id={target_user_id} | IP={request.remote_addr}")
-        return abort(403)
-        
-    # Prevent users from resetting someone else's 2FA account
-    if current_user_id != target_user_id:
-        logging.error(f"SECURITY VIOLATION: Cross-user 2FA reset attempt blocked! | actor_id={current_user_id} ({current_username}) tried to reset target_user_id={target_user_id}")
-        return abort(403)
-
-    remove_user_totp(target_user_id)
-    session.clear()
-    session['pending_user_id'] = target_user_id
-
-    logging.info(f"2FA reset successful | user_id={target_user_id} ({target_username}) cleared their own 2FA instance")
-    return redirect(url_for('setup_2fa_page'))
+    logging.info(f"2FA reset successful | user_id={user_id} ({username}) cleared their own 2FA")
+    return redirect(url_for('mfa.setup_2fa_page'))
 
 
 # --- HTML & CSS TEMPLATES ---
-LOGIN_HTML = '''
-<!DOCTYPE html>
-<html>
-<head><title>Login</title></head>
-<body>
-    <h2>Staff Login</h2>
-    {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
-    <form method="POST" action="/login">
-        <input type="text" name="username" placeholder="Username" required><br><br>
-        <input type="password" name="password" placeholder="Password" required><br><br>
-        <button type="submit">Login</button>
-    </form>
-</body>
-</html>
-'''
+
  
 SETUP_HTML = '''
 <!DOCTYPE html>
@@ -427,6 +407,3 @@ VERIFY_HTML = '''
 </html>
 '''
 
-if __name__ == '__main__':
-    init_totp_db()
-    app.run(host="127.0.0.1", port=5051, debug=True)
