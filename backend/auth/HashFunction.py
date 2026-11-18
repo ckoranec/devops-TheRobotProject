@@ -2,6 +2,7 @@ import secrets
 import hashlib
 import smtplib
 import time
+import os
 from email.message import EmailMessage
 
 otp = f"{secrets.randbelow(1_000_000):06d}"
@@ -19,8 +20,8 @@ def send_otp_email(recipient, otp_code):
     # --- Change these ---
     SMTP_SERVER = "smtp.gmail.com"
     SMTP_PORT = 587
-    SENDER_EMAIL = "maxx.byte.recovery@gmail.com"
-    APP_PASSWORD = "odfy nrwu ibnq ccdt"
+    SENDER_EMAIL = os.environ["SENDER_EMAIL"]
+    APP_PASSWORD = os.environ["EMAIL_APP_PASSWORD"]
 
     msg = EmailMessage()
     msg["Subject"] = "Your verification code"
