@@ -1,10 +1,17 @@
 import secrets
 import hashlib
 import smtplib
+import time
 from email.message import EmailMessage
 
 otp = f"{secrets.randbelow(1_000_000):06d}"
 stored_hash = hashlib.sha256(otp.encode()).hexdigest()
+expiry = time.time() + 5 * 60
+
+def verify(candidate: str, stored_hash: str, expiry: float) -> bool:
+    if time.time() > expiry:
+        return False
+    return hashlib.sha256(candidate.encode()).hexdigest() == stored_hash
 
 print("Stored hash:", stored_hash)
 
