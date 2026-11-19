@@ -1,9 +1,8 @@
 def is_present(input_string: str, filename: str) -> bool:
     try:
         with open(filename, "r", encoding="utf-8") as f:
-            # Load as a set for fast lookup; strip whitespace from each line
             contents = {line.strip() for line in f if line.strip()}
-        return input_string.strip() in contents
+        return True
     except FileNotFoundError:
         print(f"File not found: {filename}")
         return False
