@@ -7,14 +7,15 @@ Campus routes are one `campus` blueprint; helpers, tests and launchers do not ne
 The provider stays a separate service on 5052. The receiving shared app runs on 5051.
 No teammate source files or real database tables are changed by this update.
 
-Integration checked against human-only commit 69aaa1f7acff110a8bcf30e86f2a6fe07a6d4ced:
+Integration checked against human-only commit 7933e98a5499fca90f36301aff0a135b76193b3f:
 - Campus now directly imports Colin's staff_login.begin_staff_login(staff_id).
 - The duplicate campus session-start function has been removed; there is no fallback copy.
 - Colin's initializer now calls create_staff_campus_mapping().
 - Mapping lookup still imports and uses Colin's database functions.
 - The initializer creates the mapping table, but does not itself seed CAMPUS-1001 -> staff_test.
 - Shared begin_staff_login does not yet set pending_started, and MFA does not enforce expiry.
-- Shek still needs to register campus routes in the shared app factory.
+- Shek has registered campus routes in the shared app factory (commit 7933e98).
+- The shared factory also initializes campus/mapping tables, but still needs an existing users database.
 
 No Colin or Shek files are included in this update. Existing real accounts and tables are untouched.
 
@@ -93,7 +94,7 @@ ports rather than killing other processes. From the repository root:
 
 Open http://127.0.0.1:5051/campus. Sign in as campus_staff with the chosen fake campus password,
 then complete the existing shared MFA. campus_student must be refused before MFA.
-This launcher currently uses Dave's wrapper; it is not proof that Coty's exact entry point is done.
+This launcher uses Dave's thin wrapper around Shek's shared factory. The factory now registers campus itself; repeat registration is safely ignored. The integration tests exercise the shared factory directly.
 
 ### Two-terminal alternative, with matching keys
 
@@ -108,13 +109,13 @@ foreach ($campusName in @('FLASK_SECRET_KEY','CAMPUS_SSO_SIGNING_KEY','CAMPUS_ID
     [Environment]::SetEnvironmentVariable($campusName, ([string]$campusValue).Trim(), 'Process')
 }
 Start-Process powershell.exe -ArgumentList '-NoProfile', '-NoExit', '-Command', "& '$campusPython' -m campus_sso.campus_provider" -WorkingDirectory (Get-Location).Path
-& $campusPython -m backend.auth.campus_staff_app
+& $campusPython -m backend.auth.app
 ```
 
 Terminal 2 runs the provider; terminal 1 runs the receiver. Keep both open. Stop each with Ctrl+C.
-After Shek registers campus routes, the receiver command becomes `python -m backend.auth.app`.
-That does not itself start the separate provider; the team must agree how its one-command demo
-launcher starts both processes.
+The receiver command is now `python -m backend.auth.app`. This starts the unified staff
+application, not the separate provider. Dave's run_demo starts both services with matching
+keys; the two-terminal sequence above verifies Coty's exact shared entry point.
 
 ## Shared handoff contract for Colin and Shek
 
@@ -135,7 +136,7 @@ supplied, but does not manufacture it or claim to enforce a natural five-minute 
 The existing expiry tests inject an old timestamp to expose the shared MFA enforcement gap.
 Colin and Shek must agree on timestamp creation and expiry enforcement for both login paths.
 
-Shek's factory registration, after staff and MFA registration and before returning app:
+Shek's factory now contains this registration after staff and MFA registration:
 
 ```python
 from backend.auth.campus_routes import register_campus_sso
@@ -163,7 +164,7 @@ of the markers when the owners fix expiry. Do not call this suite all-green or m
 ## Verification
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest backend/auth/test_campus_staff_app.py backend/auth/test_campus_sso_callback.py backend/auth/test_campus_refusal_logs.py backend/auth/test_campus_blueprint.py backend/auth/test_campus_scope.py backend/auth/test_campus_handoff.py backend/auth/test_campus_card_evidence.py campus_sso/test_campus_provider.py campus_sso/test_run_demo.py campus_sso/test_provider_sessions.py -v -rx
+.\.venv\Scripts\python.exe -m pytest backend/auth/test_campus_staff_app.py backend/auth/test_campus_sso_callback.py backend/auth/test_campus_refusal_logs.py backend/auth/test_campus_blueprint.py backend/auth/test_campus_scope.py backend/auth/test_campus_handoff.py backend/auth/test_campus_card_evidence.py campus_sso/test_campus_provider.py campus_sso/test_run_demo.py campus_sso/test_provider_sessions.py campus_sso/test_config.py backend/auth/test_campus_registration_config.py -v -rx
 ```
 
 Tests use temporary databases and secrets. Check hostname isolation, password handoff, token
@@ -193,7 +194,7 @@ startup, so set environment variables before calling the app factory.
   Separate terminals must receive the SAME signing value; never generate it
   independently in each terminal. Restart both services together after rotation.
 
-Owner integration inside the existing shared `create_app()` factory:
+Optional explicit-config interface for the owner (the current factory already works via the environment fallback):
 
 ```python
 from campus_sso.config import load_staff_config
@@ -237,7 +238,7 @@ password prompt. Shared pending-MFA expiry remains an owner dependency.
 
 ## Registration configuration hand-off (2026-11-19)
 
-Shek should load the configuration before registering campus routes:
+Registration is now present in Shek's app.py. His ensure_secret helper populates the environment and campus registration reads it. No further owner edit is required for the current connection. If the owner later chooses explicit configuration, the supported interface is:
 
 ```python
 from campus_sso.config import load_staff_config
@@ -262,3 +263,28 @@ provider logout at http://127.0.0.1:5052/logout and confirm logout, then start a
 new request at http://127.0.0.1:5051/campus. Do not reload an old token callback.
 The Continue button is only for an existing verified staff session; it does not
 mark a fresh login as MFA-verified. Shared pending-MFA expiry is still unresolved.
+
+## Integration test isolation after Shek's factory update
+
+The shared factory imports DB_FILE into its own module. Tests must point BOTH
+that imported path and database.DB_FILE to their temporary database. This update
+changes only Dave's test fixture, not the shared factory or anyone's real database.
+The main campus integration suite now calls backend.auth.app.create_app directly.
+Configuration-specific tests construct an isolated Flask app with the real shared
+blueprints before registration, so they actually test key selection at registration
+time rather than after an already-registered callback.
+
+## Coty's ownership and completion decisions
+
+David: shared handoff, provider remembrance, live Verify demonstrations, campus
+logs, fresh-clone instructions, and separately labelled timing measurements.
+Colin: staff 15-minute idle timeout, staff attempt logging/password tests, and
+CAMPUS-1001 -> staff_test seed. Shek: shared integration, now registered.
+Jeremy: account lockout and password policy. Satchi: recovery blueprint/pages.
+Do not add these owners' implementations to campus hooks. Pending-MFA expiry
+is a separate shared-flow gap, not the provider's idle timeout or the staff idle
+timeout. Report its two expected failures for shared-owner assignment.
+
+Do not mark the card complete until a fresh clone is demonstrated with approved
+staff seed/mapping, all Verify evidence is shown, timings are measured, and Coty
+resolves customer-order access versus staff-only acceptance scope.

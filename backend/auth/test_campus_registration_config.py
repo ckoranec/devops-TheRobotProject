@@ -2,7 +2,8 @@
 import os
 import pytest
 from flask import Flask
-from backend.auth.app import create_app as create_shared_app
+from backend.auth.staff_login import staff_bp
+from backend.auth.mfa import mfa_bp
 from backend.auth.campus_routes import register_campus_sso
 from backend.auth.test_campus_staff_app import BASE, campus_token, setup
 
@@ -11,7 +12,10 @@ from backend.auth.test_campus_staff_app import BASE, campus_token, setup
 def test_receiver_uses_configured_signing_key(setup, monkeypatch, environment):
     _, provider, password = setup
     key = os.environ['CAMPUS_SSO_SIGNING_KEY']
-    app = create_shared_app()
+    app = Flask(__name__)
+    app.secret_key = os.environ["FLASK_SECRET_KEY"]
+    app.register_blueprint(staff_bp)
+    app.register_blueprint(mfa_bp)
     original_session_key = app.secret_key
     app.config['CAMPUS_SSO_SIGNING_KEY'] = key
     if environment == 'missing':
@@ -41,7 +45,10 @@ def test_invalid_explicit_config_does_not_fall_back(setup, key):
 
 
 def test_environment_fallback_and_repeat_registration(setup):
-    app = create_shared_app()
+    app = Flask(__name__)
+    app.secret_key = os.environ["FLASK_SECRET_KEY"]
+    app.register_blueprint(staff_bp)
+    app.register_blueprint(mfa_bp)
     key = os.environ['CAMPUS_SSO_SIGNING_KEY']
     register_campus_sso(app)
     routes = list(app.url_map.iter_rules())

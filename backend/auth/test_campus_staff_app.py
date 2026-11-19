@@ -11,7 +11,7 @@ from html import unescape
 import pyotp
 import pytest
 
-from backend.auth import database, mfa
+from backend.auth import database, mfa, app as shared_app
 from backend.auth.campus_directory import seed_campus_accounts
 from backend.auth.campus_staff_app import create_app, register_campus_sso
 from backend.auth.password_hashing import hash_password
@@ -26,6 +26,7 @@ def setup(tmp_path, monkeypatch):
     # Use temporary databases so tests do not change your real accounts.
     path = tmp_path / "users.db"
     monkeypatch.setattr(database, "DB_FILE", str(path))
+    monkeypatch.setattr(shared_app, "DB_FILE", str(path))
     monkeypatch.setattr(mfa, "TOTP_DB_PATH", str(tmp_path / "totp.db"))
     password = secrets.token_urlsafe(24)
 
@@ -55,7 +56,7 @@ def setup(tmp_path, monkeypatch):
     ):
         monkeypatch.setenv(name, secrets.token_urlsafe(48))
 
-    app = create_app()
+    app = shared_app.create_app()
     app.config["TESTING"] = True
 
     provider = create_provider(path)

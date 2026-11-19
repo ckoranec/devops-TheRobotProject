@@ -41,7 +41,7 @@ a deployed HTTPS provider must use Secure cookies. Keep this as a local simulati
 | No additional campus registration | Provider reads existing accounts; no registration screen. Admin seed/mapping is test setup, not user registration |
 | Remembered university login | New provider session suite: fresh proof, cookie properties, idle/absolute expiry, invalid cookie, restart, credential change, logout, staff MFA boundary |
 | Under 10 seconds | NOT VERIFIED. Prior manual fresh-login results exceeded 10 seconds |
-| Exact shared app.py launch | Shek still must register register_campus_sso(app); wrapper remains for independent development |
+| Exact shared app.py launch | Registered by Shek in commit 7933e98; shared-factory tests exercise it directly. Windows launch/fresh-clone verification remains |
 | Shared pending-MFA timeout | Two strict XFAILs remain. Colin's handoff lacks timestamp creation and shared MFA lacks expiry enforcement |
 
 Identity acceptance logs mean handed to MFA, not that MFA succeeded. Shared MFA logs its own
