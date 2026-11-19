@@ -2,7 +2,7 @@ def is_present(input_string: str, filename: str) -> bool:
     try:
         with open(filename, "r", encoding="utf-8") as f:
             contents = {line.strip() for line in f if line.strip()}
-        return True
+        return input_string.strip() in contents
     except FileNotFoundError:
         print(f"File not found: {filename}")
         return False
