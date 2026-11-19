@@ -4,7 +4,7 @@
 
 import os
 from pathlib import Path
-import secrets
+from campus_sso.config import make_demo_environment
 import socket
 import subprocess
 import sys
@@ -15,23 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def make_environment(source):
-    env = dict(source)
-
-    for name in (
-        "FLASK_SECRET_KEY",
-        "CAMPUS_SSO_SIGNING_KEY",
-        "CAMPUS_IDP_COOKIE_SECRET",
-    ):
-        # Both children receive the same generated values.
-        if not env.get(name):
-            env[name] = secrets.token_urlsafe(48)
-        elif len(env[name]) < 32:
-            raise RuntimeError(
-                f"{name} is too short. Clear or replace it before launching."
-            )
-
-    env["PYTHONUNBUFFERED"] = "1"
-    return env
+    return make_demo_environment(source)
 
 
 def require_free_ports(ports=(5051, 5052)):

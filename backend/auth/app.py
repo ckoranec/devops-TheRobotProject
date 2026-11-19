@@ -3,22 +3,30 @@ import os
 import secrets
 
 from flask import Flask
-
+from .database import DB_FILE, create_staff_campus_mapping
 from .staff_login import staff_bp
 from .mfa import mfa_bp, init_totp_db
+from .campus_routes import register_campus_sso
+from .campus_directory import create_campus_table
 
-
+def ensure_secret(name):
+    """Use the env value if valid; otherwise generate one (dev) or fail (production)."""
+    value = os.environ.get(name, "")
+    if len(value) >= 32:
+        return value
+    if os.environ.get("APP_ENV") == "production":
+        raise RuntimeError(f"Set {name} to a random value of at least 32 characters.")
+    value = secrets.token_hex(32)
+    os.environ[name] = value      # so read_secret() and the reloader child see it
+    print(f"WARNING: {name} not set. Generated temporary dev key.")
+    return value
 
 def create_app():
     app = Flask(__name__)
 
-    key = os.environ.get("FLASK_SECRET_KEY")
-    if not key:
-        if os.environ.get("APP_ENV") == "production":
-            raise RuntimeError("Set FLASK_SECRET_KEY before starting the application in production.")
-        key = secrets.token_hex(32)
-        print("WARNING: FLASK_SECRET_KEY not set. Generated temporary dev key.")
-    app.secret_key = key
+    app.secret_key = ensure_secret("FLASK_SECRET_KEY")
+    ensure_secret("CAMPUS_SSO_SIGNING_KEY")
+    ensure_secret("CAMPUS_IDP_COOKIE_SECRET")
 
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
@@ -40,9 +48,13 @@ def create_app():
     )
 
     init_totp_db()
+    create_staff_campus_mapping()
+    create_campus_table(DB_FILE)
 
     app.register_blueprint(staff_bp)    # /, /login, /staff, /logout, /recover
     app.register_blueprint(mfa_bp)      # /setup-2fa, /verify-code, /reset-2fa
+    register_campus_sso(app)            # /campus, /campus/continue, /campus/logout,
+                                        # /auth/campus/start, /auth/campus/callback
     return app
 
 

@@ -1,3 +1,4 @@
+# 2026-11-19 - David Noyes - Remembered provider sessions, fresh proof and provider logout.
 # 2026-11-18 - David Noyes - Shared-app callback and discoverable provider tests.
 # 2026-11-16 ? David Noyes ? Update references to the renamed campus provider.
 # 2026-11-13 — David Noyes — Card 4 simulated campus identity provider.
@@ -5,16 +6,19 @@
 
 # Import web tools, token validation, and the existing campus database lookup.
 import os
+from campus_sso.config import read_secret, load_provider_config
 import re
 import secrets
+import sqlite3
 import time
 from urllib.parse import urlencode
 
-from flask import Flask, redirect, render_template_string, request, session
+from flask import Flask, make_response, redirect, render_template_string, request, session
 from itsdangerous import BadData, SignatureExpired
 
 from backend.auth.campus_login import token_serializer
 from backend.auth.campus_directory import find_campus_identity
+from campus_sso.provider_sessions import COOKIE_NAME, ProviderSessions, current_identity
 
 
 # Define the local applications and the maximum lifetimes of login requests.
@@ -92,16 +96,6 @@ RETURN_HTML = """
 """
 
 
-def read_secret(name):
-    # Require an environment secret without displaying its value.
-    value = os.environ.get(name, "")
-    if len(value) < 32:
-        raise RuntimeError(
-            f"Set {name} to a random value of at least 32 characters."
-        )
-    return value
-
-
 def make_token(signer, identity, state):
     # Sign permanent campus identity without claiming staff authorization or MFA.
     now = int(time.time())
@@ -168,15 +162,54 @@ def check_token(signer, token, expected_state):
     return claims
 
 
-def create_provider(database_path=None):
+def create_provider(database_path=None, session_store=None):
     # Use the real campus database normally; tests can supply a temporary path.
     app = Flask(__name__)
-    app.secret_key = read_secret("CAMPUS_IDP_COOKIE_SECRET")
+    app.config.update(load_provider_config())
     app.config["SESSION_COOKIE_NAME"] = "maxbytes_fake_campus"
     app.config["SESSION_COOKIE_HTTPONLY"] = True
     app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
     app.config["MAX_CONTENT_LENGTH"] = 8192
     signer = token_serializer(read_secret("CAMPUS_SSO_SIGNING_KEY"))
+
+    store = session_store if session_store is not None else ProviderSessions()
+    app.extensions["campus_provider_sessions"] = store
+
+    def record(result, campus_id=None):
+        app.logger.info("event=campus_provider | result=%s | campus_id=%s", result, campus_id or "-")
+
+    def return_proof(identity, state):
+        # Every request gets fresh proof; provider authentication is not staff MFA.
+        session.clear()
+        return make_response(render_template_string(
+            RETURN_HTML, token=make_token(signer, identity, state), callback=CALLBACK_URL))
+
+    @app.errorhandler(sqlite3.Error)
+    def unavailable_directory(error):
+        record("directory_unavailable")
+        return "Campus directory unavailable. Please try again later.", 503
+
+    @app.get("/logout")
+    def logout_form():
+        session["logout_csrf"] = secrets.token_urlsafe(32)
+        return render_template_string("""<h1>Sign out of campus provider</h1>
+        <p>This ends remembered campus login. Staff-site logout is separate.</p>
+        <form method="post"><input type="hidden" name="csrf" value="{{ csrf }}">
+        <button>Sign out of campus provider</button></form>""", csrf=session["logout_csrf"])
+
+    @app.post("/logout")
+    def logout_provider():
+        supplied = request.form.get("csrf", "")
+        expected = session.get("logout_csrf", "")
+        if not STATE_PATTERN.fullmatch(supplied) or not expected or not secrets.compare_digest(supplied, expected):
+            record("logout_refused")
+            return "Invalid logout form.", 403
+        store.revoke(request.cookies.get(COOKIE_NAME))
+        session.clear()
+        record("logout")
+        response = make_response('<p>Campus provider signed out.</p><a href="http://127.0.0.1:5051/campus">Return to staff campus entry</a>')
+        response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="Lax")
+        return response
 
     # Restrict this development application to its expected local address.
     @app.before_request
@@ -202,7 +235,7 @@ def create_provider(database_path=None):
             "<h1>Staff Login — Campus Provider</h1>"
             "<p>Local simulation is running.</p>"
             "<p>Start from the staff site's campus sign-in button.</p>"
-            "<p>This page does not create a staff session.</p>"
+            '<p>This page does not create a staff session.</p><a href="/logout">Sign out of campus provider</a>'
         )
 
     # Create the login form and check credentials against campus_accounts only.
@@ -211,7 +244,14 @@ def create_provider(database_path=None):
         if request.method == "GET":
             state = request.args.get("state", "")
             if not STATE_PATTERN.fullmatch(state):
+                record("invalid_request")
                 return "Start from the staff site's sign-in button.", 400
+            remembered = request.cookies.get(COOKIE_NAME)
+            if remembered:
+                identity, outcome = store.lookup(remembered, database_path)
+                record(outcome, identity["campus_id"] if identity else None)
+                if identity is not None:
+                    return return_proof(identity, state)
             session.clear()
             session["sso_state"] = state
             session["csrf"] = secrets.token_urlsafe(32)
@@ -219,9 +259,11 @@ def create_provider(database_path=None):
 
         # Require an active, unexpired provider form.
         if time.time() - session.get("started", 0) > REQUEST_TTL:
+            record("request_expired")
             return "Login request expired. Start again at the staff site.", 400
         state = session.get("sso_state", "")
         if not STATE_PATTERN.fullmatch(state):
+            record("invalid_request")
             return "Invalid login request. Start again.", 400
 
         error = ""
@@ -232,15 +274,19 @@ def create_provider(database_path=None):
             expected = session.get("csrf", "")
             supplied = request.form.get("csrf", "")
             if not STATE_PATTERN.fullmatch(supplied):
+                record("form_refused")
                 return "Invalid form. Start again.", 400
             if not expected or not secrets.compare_digest(expected, supplied):
+                record("form_refused")
                 return "Invalid form. Start again.", 400
 
             username = request.form.get("username", "").strip()
             password = request.form.get("password", "")
             if not username or len(username) > 100:
+                record("invalid_credentials")
                 return "Login refused.", 400
             if not password or len(password) > 256:
+                record("invalid_credentials")
                 return "Login refused.", 400
 
             # Reuse the read-only campus lookup instead of the staff lookup.
@@ -248,25 +294,42 @@ def create_provider(database_path=None):
                 username, password, database_path
             )
             if identity is not None:
-                token = make_token(signer, identity, state)
-                session.clear()
-                return render_template_string(
-                    RETURN_HTML, token=token, callback=CALLBACK_URL
-                )
+                current = current_identity(identity["campus_id"], database_path)
+                if current is None:
+                    record("session_revoked")
+                    return "Login refused.", 401
+                try:
+                    remembered = store.create(identity, current[1], request.cookies.get(COOKIE_NAME))
+                except RuntimeError:
+                    record("session_capacity")
+                    return "Please try again later.", 503
+                response = return_proof(identity, state)
+                # Local HTTP simulation only. Production requires HTTPS + Secure cookies.
+                response.set_cookie(COOKIE_NAME, remembered, httponly=True, samesite="Lax", secure=False, path="/")
+                record("password_accepted", identity["campus_id"])
+                return response
+
+            record("invalid_credentials")
 
             error = "Login failed."
             status = 401
 
-        return render_template_string(
-            LOGIN_HTML, csrf=session.get("csrf", ""), error=error
-        ), status
+        response = make_response(render_template_string(
+            LOGIN_HTML, csrf=session.get("csrf", ""), error=error), status)
+        # A rejected/expired cookie must not persist after the new form is shown.
+        response.delete_cookie(COOKIE_NAME, path="/", httponly=True, samesite="Lax")
+        return response
 
     return app
 
 
-def register_staff_sso(app, resolve_staff, begin_staff_login, write_event):
+def register_staff_sso(app, resolve_staff, begin_staff_login, write_event, *, signing_key=None):
     # Require shared staff functions; pending requests serve one local process.
-    signer = token_serializer(read_secret("CAMPUS_SSO_SIGNING_KEY"))
+    key = read_secret(
+        "CAMPUS_SSO_SIGNING_KEY",
+        None if signing_key is None else {"CAMPUS_SSO_SIGNING_KEY": signing_key},
+    )
+    signer = token_serializer(key)
     pending = {}
 
     def record(result, campus_id=None):
@@ -286,6 +349,7 @@ def register_staff_sso(app, resolve_staff, begin_staff_login, write_event):
             if deadline <= now:
                 pending.pop(old_state, None)
         if len(pending) >= 1000:
+            record("request_capacity")
             return "Please try again later.", 503
 
         previous = session.pop("campus_sso_state", None)
@@ -333,4 +397,8 @@ def register_staff_sso(app, resolve_staff, begin_staff_login, write_event):
 
 # Start only when explicitly launched, using the existing local campus database.
 if __name__ == "__main__":
+    import logging
+    from pathlib import Path
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s",
+                        handlers=[logging.FileHandler(Path(__file__).with_name("provider_activity.log"), encoding="utf-8"), logging.StreamHandler()])
     create_provider().run(host="127.0.0.1", port=5052, debug=False)

@@ -11,7 +11,9 @@ from flask import abort, Blueprint, current_app, redirect, render_template_strin
 
 from backend.auth import database
 from backend.auth.mfa import PENDING_SECONDS
-from campus_sso.campus_provider import read_secret, register_staff_sso
+from backend.auth.staff_login import begin_staff_login
+from campus_sso.config import read_secret
+from campus_sso.campus_provider import register_staff_sso
 
 
 PAGE = """
@@ -35,6 +37,7 @@ background:#075c45;color:white;border-radius:6px;text-decoration:none;}
 <a class="button" href="/auth/campus/start">Sign in with campus account</a>
 <p><a href="/">Use staff username and password instead</a></p>
 <p><a href="/staff">Check staff access</a></p>
+<p><a href="http://127.0.0.1:5052/logout">Sign out of campus provider</a> (separate from staff logout)</p>
 <form action="{{ url_for('campus.campus_logout') }}" method="post">
 <input type="hidden" name="csrf" value="{{ logout_csrf }}">
 <button type="submit">Log out of campus session</button></form>
@@ -61,7 +64,7 @@ def check_database_setup():
         raise RuntimeError("Cannot read the existing users.db. Check local setup.") from error
 
 
-def create_campus_blueprint():
+def create_campus_blueprint(*, signing_key=None):
     """Build Dave's routes without importing or constructing the shared app."""
     bp = Blueprint("campus", __name__)
 
@@ -93,7 +96,8 @@ def create_campus_blueprint():
         if request.path == "/auth/campus/start":
             session.clear()
 
-        # Expire the pending MFA stage created by this campus adapter.
+        # Honor a pending timestamp if the shared login supplies one.
+        # Colin's current handoff does not yet set it; see README_CAMPUS_SSO.md.
         started = session.get("pending_started")
         if session.get("pending_mfa_user_id") and started is not None:
             if time.time() - started >= PENDING_SECONDS:
@@ -141,22 +145,13 @@ def create_campus_blueprint():
             return None
         return staff_id
 
-    def begin_staff_login(staff_user_id):
-        # TRANSITIONAL: remove this existing adapter when Colin exports
-        # staff_login.begin_staff_login. See README_CAMPUS_SSO.md.
-        # No fallback copy should be added when switching to the shared import.
-        session.clear()
-        session["pending_mfa_user_id"] = staff_user_id
-        session["mfa_verified"] = False
-        session["pending_started"] = time.time()
-        # Shek's route chooses setup for a new user or code entry for an existing user.
-        return redirect(url_for("mfa.verify_code_page"))
-
     def write_event(event, result, campus_id=None):
         # Use Python logging, as the shared MFA module does. Never log tokens/passwords.
         current_app.logger.info("event=%s | result=%s | campus_id=%s", event, result, campus_id or "-")
 
-    register_staff_sso(bp, resolve_staff, begin_staff_login, write_event)
+    register_staff_sso(
+        bp, resolve_staff, begin_staff_login, write_event, signing_key=signing_key
+    )
 
     @bp.after_request
     def explain_campus_refusal(response):
@@ -176,7 +171,10 @@ def register_campus_sso(app):
     if app.extensions.get("dave_campus_sso"):
         return app
     check_database_setup()
-    read_secret("CAMPUS_SSO_SIGNING_KEY")
-    app.register_blueprint(create_campus_blueprint())
+    # Honor the shared factory's configuration; fall back only if absent.
+    name = "CAMPUS_SSO_SIGNING_KEY"
+    key = read_secret(name, app.config if name in app.config else None)
+    app.config[name] = key
+    app.register_blueprint(create_campus_blueprint(signing_key=key))
     app.extensions["dave_campus_sso"] = True
     return app
