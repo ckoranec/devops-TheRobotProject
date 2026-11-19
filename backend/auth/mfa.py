@@ -22,7 +22,7 @@ mfa_bp = Blueprint("mfa", __name__)
 TOTP_DB_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),"totp.db" 
 )      
-PENDING_SECONDS = 300           # Time allowed to enter the code
+PENDING_SECONDS = 30           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
 
 def init_totp_db():
