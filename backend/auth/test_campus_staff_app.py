@@ -67,6 +67,8 @@ def setup(tmp_path, monkeypatch):
 def campus_token(setup, username="campus_staff", password=None):
     # Follow the campus login flow and extract its signed test token.
     client, provider, saved_password = setup
+    # Credential-specific tests use a fresh provider browser; remembered SSO has its own tests.
+    provider = provider.application.test_client()
     start = client.get(BASE + "/auth/campus/start")
     assert start.status_code == 302
 

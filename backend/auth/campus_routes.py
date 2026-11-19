@@ -12,7 +12,8 @@ from flask import abort, Blueprint, current_app, redirect, render_template_strin
 from backend.auth import database
 from backend.auth.mfa import PENDING_SECONDS
 from backend.auth.staff_login import begin_staff_login
-from campus_sso.campus_provider import read_secret, register_staff_sso
+from campus_sso.config import read_secret
+from campus_sso.campus_provider import register_staff_sso
 
 
 PAGE = """
@@ -36,6 +37,7 @@ background:#075c45;color:white;border-radius:6px;text-decoration:none;}
 <a class="button" href="/auth/campus/start">Sign in with campus account</a>
 <p><a href="/">Use staff username and password instead</a></p>
 <p><a href="/staff">Check staff access</a></p>
+<p><a href="http://127.0.0.1:5052/logout">Sign out of campus provider</a> (separate from staff logout)</p>
 <form action="{{ url_for('campus.campus_logout') }}" method="post">
 <input type="hidden" name="csrf" value="{{ logout_csrf }}">
 <button type="submit">Log out of campus session</button></form>

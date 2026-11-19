@@ -18,6 +18,20 @@ Integration checked against human-only commit 69aaa1f7acff110a8bcf30e86f2a6fe07a
 
 No Colin or Shek files are included in this update. Existing real accounts and tables are untouched.
 
+## Remembered provider login (2026-11-19)
+
+The provider now remembers campus authentication in a server-side, single-process store.
+The browser keeps only an opaque HttpOnly/SameSite=Lax session ID cookie. A returning
+request gets a fresh state-bound 60-second token without asking for the campus password.
+Staff mapping and fresh staff MFA remain required. Sessions expire after 15 minutes idle
+or one hour total and are revoked on provider logout, restart, account deletion, or password
+change. These are explicit local-demo defaults for team review.
+
+Use http://127.0.0.1:5052/logout to sign out of the provider. Staff logout is separate.
+For full checklist status, reproducible log evidence, timing worksheet and answers to Coty's
+cleanup/comment questions, read CAMPUS_CARD_STATUS.md. Under-10-second fresh login and the
+shared-owner dependencies are not marked complete.
+
 ## Fresh clone to a local demo
 
 Run from your clone on human-only. Review `git status` before pulling if you have local changes.
@@ -149,7 +163,7 @@ of the markers when the owners fix expiry. Do not call this suite all-green or m
 ## Verification
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest backend/auth/test_campus_staff_app.py backend/auth/test_campus_sso_callback.py backend/auth/test_campus_refusal_logs.py backend/auth/test_campus_blueprint.py backend/auth/test_campus_scope.py backend/auth/test_campus_handoff.py campus_sso/test_campus_provider.py campus_sso/test_run_demo.py -v -rx
+.\.venv\Scripts\python.exe -m pytest backend/auth/test_campus_staff_app.py backend/auth/test_campus_sso_callback.py backend/auth/test_campus_refusal_logs.py backend/auth/test_campus_blueprint.py backend/auth/test_campus_scope.py backend/auth/test_campus_handoff.py backend/auth/test_campus_card_evidence.py campus_sso/test_campus_provider.py campus_sso/test_run_demo.py campus_sso/test_provider_sessions.py -v -rx
 ```
 
 Tests use temporary databases and secrets. Check hostname isolation, password handoff, token
@@ -162,3 +176,58 @@ refusals, campus logging, role refusal, MFA and campus navigation. For the unres
 Manual checks: localhost:5051/ must show Colin's form; campus entry still requires
 127.0.0.1:5051/campus. Do not mix hostnames during one login because their cookies differ.
 Fresh login timing remains unverified under 10 seconds. Returning-session timings are separate.
+
+## Shared secret interface for Abhishek (2026-11-19)
+
+All active campus secret loading lives in `campus_sso/config.py`. Importing it
+neither starts a server nor reads or generates secrets. The functions read at
+startup, so set environment variables before calling the app factory.
+
+- `read_secret(name, environ=None)` validates a required value without printing it.
+- `load_staff_config(environ=None)` returns Flask `SECRET_KEY` from
+  `FLASK_SECRET_KEY`, plus `CAMPUS_SSO_SIGNING_KEY`.
+- `load_provider_config(environ=None)` returns Flask `SECRET_KEY` from
+  `CAMPUS_IDP_COOKIE_SECRET`, plus the same signing variable.
+- `make_demo_environment(source)` copies the environment, preserves configured
+  values, generates missing demo values once, and passes them to both children.
+  Separate terminals must receive the SAME signing value; never generate it
+  independently in each terminal. Restart both services together after rotation.
+
+Owner integration inside the existing shared `create_app()` factory:
+
+```python
+from campus_sso.config import load_staff_config
+from backend.auth.campus_routes import register_campus_sso
+
+# After constructing app, before serving requests:
+app.config.update(load_staff_config())
+# Keep the owner's existing staff and MFA blueprint registration.
+register_campus_sso(app)
+# Return app as usual.
+```
+
+This is an integration excerpt for the owner, not a replacement for `app.py`.
+Configure the shared session key once; remove/avoid any later assignment that
+would replace it. Dave's independent wrapper already performs these steps.
+The receiver reads `CAMPUS_SSO_SIGNING_KEY` through the same environment loader.
+All three staff blueprints share ONE Flask application/session configuration.
+Blueprints do not each need a secret, and database/helper/test modules do not
+need to load secrets unless they use them.
+
+The provider is a separate app and uses `load_provider_config()`. Keep its cookie
+secret separate from the staff cookie secret. The signing key must match across
+provider and receiver. Use independently generated random values of at least
+32 characters; do not commit them or put them in a teammate message.
+`make_token(signer, identity, state)` stays unchanged: its supplied signer is
+constructed from the validated signing key. It does not fetch session secrets.
+
+Existing imports of `read_secret` from `campus_sso.campus_provider` remain
+compatible and refer to the central implementation. Historical standalone demo
+variables (`CAMPUS_DEMO_SECRET`, `CAMPUS_DEMO_COOKIE_SECRET`) are not required by
+the active unified flow. Campus account seed passwords remain separate from all
+cryptographic keys.
+
+This configuration does not grant MFA success. A still-valid verified staff
+session can continue to `/staff`; a fresh staff login still uses Colin's
+`begin_staff_login` and Shek's MFA. Provider remembrance skips only the campus
+password prompt. Shared pending-MFA expiry remains an owner dependency.
