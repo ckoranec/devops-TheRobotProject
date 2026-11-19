@@ -323,9 +323,13 @@ def create_provider(database_path=None, session_store=None):
     return app
 
 
-def register_staff_sso(app, resolve_staff, begin_staff_login, write_event):
+def register_staff_sso(app, resolve_staff, begin_staff_login, write_event, *, signing_key=None):
     # Require shared staff functions; pending requests serve one local process.
-    signer = token_serializer(read_secret("CAMPUS_SSO_SIGNING_KEY"))
+    key = read_secret(
+        "CAMPUS_SSO_SIGNING_KEY",
+        None if signing_key is None else {"CAMPUS_SSO_SIGNING_KEY": signing_key},
+    )
+    signer = token_serializer(key)
     pending = {}
 
     def record(result, campus_id=None):

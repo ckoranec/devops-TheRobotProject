@@ -64,7 +64,7 @@ def check_database_setup():
         raise RuntimeError("Cannot read the existing users.db. Check local setup.") from error
 
 
-def create_campus_blueprint():
+def create_campus_blueprint(*, signing_key=None):
     """Build Dave's routes without importing or constructing the shared app."""
     bp = Blueprint("campus", __name__)
 
@@ -149,7 +149,9 @@ def create_campus_blueprint():
         # Use Python logging, as the shared MFA module does. Never log tokens/passwords.
         current_app.logger.info("event=%s | result=%s | campus_id=%s", event, result, campus_id or "-")
 
-    register_staff_sso(bp, resolve_staff, begin_staff_login, write_event)
+    register_staff_sso(
+        bp, resolve_staff, begin_staff_login, write_event, signing_key=signing_key
+    )
 
     @bp.after_request
     def explain_campus_refusal(response):
@@ -169,7 +171,10 @@ def register_campus_sso(app):
     if app.extensions.get("dave_campus_sso"):
         return app
     check_database_setup()
-    read_secret("CAMPUS_SSO_SIGNING_KEY")
-    app.register_blueprint(create_campus_blueprint())
+    # Honor the shared factory's configuration; fall back only if absent.
+    name = "CAMPUS_SSO_SIGNING_KEY"
+    key = read_secret(name, app.config if name in app.config else None)
+    app.config[name] = key
+    app.register_blueprint(create_campus_blueprint(signing_key=key))
     app.extensions["dave_campus_sso"] = True
     return app

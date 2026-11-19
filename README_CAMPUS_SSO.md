@@ -209,7 +209,10 @@ register_campus_sso(app)
 This is an integration excerpt for the owner, not a replacement for `app.py`.
 Configure the shared session key once; remove/avoid any later assignment that
 would replace it. Dave's independent wrapper already performs these steps.
-The receiver reads `CAMPUS_SSO_SIGNING_KEY` through the same environment loader.
+The receiver takes `CAMPUS_SSO_SIGNING_KEY` from `app.config` when configured.
+Only when absent does it load the environment variable. Invalid explicit
+configuration fails startup rather than silently falling back. Registration
+never changes the shared app session secret.
 All three staff blueprints share ONE Flask application/session configuration.
 Blueprints do not each need a secret, and database/helper/test modules do not
 need to load secrets unless they use them.
@@ -231,3 +234,31 @@ This configuration does not grant MFA success. A still-valid verified staff
 session can continue to `/staff`; a fresh staff login still uses Colin's
 `begin_staff_login` and Shek's MFA. Provider remembrance skips only the campus
 password prompt. Shared pending-MFA expiry remains an owner dependency.
+
+## Registration configuration hand-off (2026-11-19)
+
+Shek should load the configuration before registering campus routes:
+
+```python
+from campus_sso.config import load_staff_config
+from backend.auth.campus_routes import register_campus_sso
+
+# Inside the existing shared factory, after Flask app construction:
+app.config.update(load_staff_config())
+# Keep the existing staff/MFA registration and other factory initialization.
+register_campus_sso(app)
+```
+
+This excerpt is for the owner to place in app.py, not a replacement file.
+Dave's wrapper already loads this configuration and registers the campus routes.
+The campus blueprint forwards the configured signing key to its token validator.
+Colin's actual get_staff_id_by_campus_id and begin_staff_login remain in use.
+The separate provider must receive the same signing value in its environment.
+Do not rotate keys on every request; restart both services together after rotation.
+
+A remembered provider login immediately reaches staff MFA without displaying a
+campus password form. This is expected. To choose another campus account, use
+provider logout at http://127.0.0.1:5052/logout and confirm logout, then start a
+new request at http://127.0.0.1:5051/campus. Do not reload an old token callback.
+The Continue button is only for an existing verified staff session; it does not
+mark a fresh login as MFA-verified. Shared pending-MFA expiry is still unresolved.
