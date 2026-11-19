@@ -11,6 +11,7 @@ from flask import abort, Blueprint, current_app, redirect, render_template_strin
 
 from backend.auth import database
 from backend.auth.mfa import PENDING_SECONDS
+from backend.auth.staff_login import begin_staff_login
 from campus_sso.campus_provider import read_secret, register_staff_sso
 
 
@@ -93,7 +94,8 @@ def create_campus_blueprint():
         if request.path == "/auth/campus/start":
             session.clear()
 
-        # Expire the pending MFA stage created by this campus adapter.
+        # Honor a pending timestamp if the shared login supplies one.
+        # Colin's current handoff does not yet set it; see README_CAMPUS_SSO.md.
         started = session.get("pending_started")
         if session.get("pending_mfa_user_id") and started is not None:
             if time.time() - started >= PENDING_SECONDS:
@@ -140,17 +142,6 @@ def create_campus_blueprint():
         if database.get_user_by_id(staff_id) is None:
             return None
         return staff_id
-
-    def begin_staff_login(staff_user_id):
-        # TRANSITIONAL: remove this existing adapter when Colin exports
-        # staff_login.begin_staff_login. See README_CAMPUS_SSO.md.
-        # No fallback copy should be added when switching to the shared import.
-        session.clear()
-        session["pending_mfa_user_id"] = staff_user_id
-        session["mfa_verified"] = False
-        session["pending_started"] = time.time()
-        # Shek's route chooses setup for a new user or code entry for an existing user.
-        return redirect(url_for("mfa.verify_code_page"))
 
     def write_event(event, result, campus_id=None):
         # Use Python logging, as the shared MFA module does. Never log tokens/passwords.

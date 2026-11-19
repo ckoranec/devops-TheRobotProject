@@ -7,16 +7,16 @@ Campus routes are one `campus` blueprint; helpers, tests and launchers do not ne
 The provider stays a separate service on 5052. The receiving shared app runs on 5051.
 No teammate source files or real database tables are changed by this update.
 
-Outstanding dependencies checked against human-only on 2026-11-18:
-- Colin's staff_login.py does not yet export begin_staff_login(staff_id).
-- initialize_database.py imports create_staff_campus_mapping but does not call it.
-- Colin must provide CAMPUS-1001 -> the numeric ID of staff_test. Never assume an ID.
-- Shared MFA declares PENDING_SECONDS but does not reject expired pending sessions on its routes.
-- Shek still needs to register the campus blueprint in the shared app factory.
+Integration checked against human-only commit 69aaa1f7acff110a8bcf30e86f2a6fe07a6d4ced:
+- Campus now directly imports Colin's staff_login.begin_staff_login(staff_id).
+- The duplicate campus session-start function has been removed; there is no fallback copy.
+- Colin's initializer now calls create_staff_campus_mapping().
+- Mapping lookup still imports and uses Colin's database functions.
+- The initializer creates the mapping table, but does not itself seed CAMPUS-1001 -> staff_test.
+- Shared begin_staff_login does not yet set pending_started, and MFA does not enforce expiry.
+- Shek still needs to register campus routes in the shared app factory.
 
-The existing campus handoff remains temporarily in campus_routes.py; it is explicitly marked
-TRANSITIONAL. This package does not add another implementation or claim the shared-function
-requirement is complete. Replace it with the import below once Colin's function lands.
+No Colin or Shek files are included in this update. Existing real accounts and tables are untouched.
 
 ## Fresh clone to a local demo
 
@@ -37,8 +37,9 @@ policy when updating its requirements file; this package does not edit that file
 ### Database prerequisites
 
 Use Colin's approved setup to create users.db, the staff users table and staff_test account,
-and staff_campus_mapping with CAMPUS-1001 mapped to staff_test. The current initializer alone
-is insufficient. If these prerequisites are missing, pause database setup until Colin's
+and staff_campus_mapping with CAMPUS-1001 mapped to staff_test. Colin's initializer
+now creates the tables (`python -m backend.auth.initialize_database`), but account and mapping
+seeding must still use his approved setup. The initializer alone is insufficient. If these prerequisites are missing, pause database setup until Colin's
 initializer/seed update is available; do not patch his tables or guess staff IDs.
 No student mapping should be added. A missing mapping yields no_staff_role; invalid_signature
 and expired_token are different failures, so inspect the log reason before diagnosing.
@@ -104,16 +105,21 @@ launcher starts both processes.
 ## Shared handoff contract for Colin and Shek
 
 Mapping uses database.get_staff_id_by_campus_id(campus_id), returning a staff ID or None.
-Once available, campus_routes.py must import:
+campus_routes.py now imports the shared function directly:
 
 ```python
 from backend.auth.staff_login import begin_staff_login
 ```
 
-Remove the nested transitional function and pass the imported function to register_staff_sso.
-Colin's password route must call that same function. It should clear old authentication, create
-pending MFA state and its start timestamp, and return the shared MFA redirect; it must not mark
-MFA complete. Agree on the timestamp key and expiry with Shek.
+The imported function is passed directly to register_staff_sso. Colin's password route calls
+that same function. It clears previous authentication, sets pending_mfa_user_id and
+mfa_verified=False, and returns the shared MFA redirect. No duplicate session-start code remains.
+The two new handoff tests verify callable identity and equivalent pending state for both paths.
+
+Colin's current function does not set pending_started. The campus hook can honor that field if
+supplied, but does not manufacture it or claim to enforce a natural five-minute login expiry.
+The existing expiry tests inject an old timestamp to expose the shared MFA enforcement gap.
+Colin and Shek must agree on timestamp creation and expiry enforcement for both login paths.
 
 Shek's factory registration, after staff and MFA registration and before returning app:
 
@@ -133,7 +139,8 @@ Scoping the old global hook exposes an existing shared-MFA gap: an expired pendi
 can submit a current valid authenticator code and reach /staff. A new test demonstrates this
 with disposable accounts. This is not a claim that MFA itself is bypassed; a valid code is still
 required. Shared setup and verification routes must enforce pending expiry before release.
-The campus timeout still clears stale pending state on campus endpoints only.
+The campus timeout clears stale pending state on campus endpoints only when a timestamp exists;
+the current shared login does not create that timestamp.
 
 Two expiry tests are marked strict XFAIL, not PASS. They remain executable known-failure evidence.
 Use `--runxfail` to see the failures directly. Unexpected passes cause a failure requiring review
@@ -142,7 +149,7 @@ of the markers when the owners fix expiry. Do not call this suite all-green or m
 ## Verification
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest backend/auth/test_campus_staff_app.py backend/auth/test_campus_sso_callback.py backend/auth/test_campus_refusal_logs.py backend/auth/test_campus_blueprint.py backend/auth/test_campus_scope.py campus_sso/test_campus_provider.py campus_sso/test_run_demo.py -v -rx
+.\.venv\Scripts\python.exe -m pytest backend/auth/test_campus_staff_app.py backend/auth/test_campus_sso_callback.py backend/auth/test_campus_refusal_logs.py backend/auth/test_campus_blueprint.py backend/auth/test_campus_scope.py backend/auth/test_campus_handoff.py campus_sso/test_campus_provider.py campus_sso/test_run_demo.py -v -rx
 ```
 
 Tests use temporary databases and secrets. Check hostname isolation, password handoff, token
