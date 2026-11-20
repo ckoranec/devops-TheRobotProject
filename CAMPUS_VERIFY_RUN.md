@@ -46,7 +46,7 @@ PASSED
 - Final logging coverage review.
 - COMPLETED 2026-11-20: provider logout and restored credential prompt; evidence below.
 - Under-10-second measurements by login scenario.
-- Fresh-clone verification.
+- COMPLETED 2026-11-20: fresh-clone setup, browser outcomes, and automated tests; evidence below.
 - Shared pending-MFA expiry remains a known gap.
 - Customer-order versus staff-only scope clarification.
 
@@ -89,3 +89,20 @@ Latest supplied Windows integration result after merging team updates:
 83 passed, 2 xfailed in 68.79s.
 Merged revision: 3115f5444364f4b26e7b54969cca23ccf7bf4452.
 The two expected failures concern shared pending-MFA expiry enforcement.
+
+## Fresh-clone verification - 2026-11-20
+
+Tested revision: de06780f2eb1055e9f9b827f0a61a166075618c8
+Environment: Windows PowerShell 5.1, Python 3.15.0, separate virtual environment.
+
+- Cloned human-only into a separate directory.
+- Installed dependencies using requirements.txt.
+- Initialized the new database using the shared initializer.
+- Campus staff completed new MFA enrollment and reached the staff welcome page.
+- Campus student was refused staff access.
+- Browser outcomes were confirmed by David.
+- Campus integration suite: 83 passed, 2 xfailed in 58.73s.
+- git status --short returned no changes after verification.
+
+The two expected failures still concern shared pending-MFA expiry.
+This verification does not establish an under-10-second login.
