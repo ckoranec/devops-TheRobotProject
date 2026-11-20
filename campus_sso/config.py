@@ -1,9 +1,23 @@
-# 2026-11-19 - David Noyes
-"""Importable configuration; importing this module never reads or generates secrets."""
+# 2026-11-20 - David Noyes
+"""Secret configuration shared by the campus provider and demo launcher."""
+
 import os
 import secrets
 
-SECRET_NAMES = ("FLASK_SECRET_KEY", "CAMPUS_SSO_SIGNING_KEY", "CAMPUS_IDP_COOKIE_SECRET")
+SECRET_NAMES = (
+    "FLASK_SECRET_KEY",
+    "CAMPUS_SSO_SIGNING_KEY",
+    "CAMPUS_IDP_COOKIE_SECRET",
+)
+
+STARTUP_GUIDANCE = (
+    "For the full local demo, run python -m campus_sso.run_demo. "
+    "For separate terminals, configure the same "
+    "CAMPUS_SSO_SIGNING_KEY in both processes. "
+    "Configure FLASK_SECRET_KEY for the staff application and "
+    "CAMPUS_IDP_COOKIE_SECRET for the provider separately. "
+    "Do not share or print secret values."
+)
 
 
 def read_secret(name, environ=None):
@@ -11,28 +25,36 @@ def read_secret(name, environ=None):
     source = os.environ if environ is None else environ
     value = source.get(name, "")
     if not isinstance(value, str) or len(value) < 32:
-        raise RuntimeError(f"{name} is missing or too short. Set it to a random value of at least 32 characters.")
+        raise RuntimeError(
+            f"{name} is missing or too short. "
+            "Set it to a random value of at least 32 characters. "
+            + STARTUP_GUIDANCE
+        )
     return value
 
 
 def load_staff_config(environ=None):
-    """Configuration for the ONE staff application and all its blueprints."""
+    """Load configuration for the shared staff application."""
     return {
         "SECRET_KEY": read_secret("FLASK_SECRET_KEY", environ),
-        "CAMPUS_SSO_SIGNING_KEY": read_secret("CAMPUS_SSO_SIGNING_KEY", environ),
+        "CAMPUS_SSO_SIGNING_KEY": read_secret(
+            "CAMPUS_SSO_SIGNING_KEY", environ
+        ),
     }
 
 
 def load_provider_config(environ=None):
-    """The provider has a separate cookie secret, but the same token signing key."""
+    """Use a separate provider cookie key and the shared token key."""
     return {
         "SECRET_KEY": read_secret("CAMPUS_IDP_COOKIE_SECRET", environ),
-        "CAMPUS_SSO_SIGNING_KEY": read_secret("CAMPUS_SSO_SIGNING_KEY", environ),
+        "CAMPUS_SSO_SIGNING_KEY": read_secret(
+            "CAMPUS_SSO_SIGNING_KEY", environ
+        ),
     }
 
 
 def make_demo_environment(source):
-    """Return an isolated environment for both local child processes."""
+    """Generate missing demo keys once for both child processes."""
     env = dict(source)
     for name in SECRET_NAMES:
         if not env.get(name):
