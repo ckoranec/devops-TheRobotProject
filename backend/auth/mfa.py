@@ -8,7 +8,7 @@ import logging
 import hmac
 import pyotp
 import qrcode
-from flask import Flask, redirect, render_template_string, request, session, url_for, abort, Blueprint, current_app
+from flask import Flask, redirect, render_template_string, request, session, url_for, abort, Blueprint, current_app, make_response
 
 try:
     from .database import get_user_by_id
@@ -22,7 +22,7 @@ mfa_bp = Blueprint("mfa", __name__)
 TOTP_DB_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),"totp.db" 
 )      
-PENDING_SECONDS = 30           # Time allowed to enter the code
+PENDING_SECONDS =30           # Time allowed to enter the code
 MAX_CODE_TRIES = 5
 
 def init_totp_db():
@@ -159,12 +159,64 @@ def remove_user_totp(user_id):
     conn.close()
     print(f"TOTP instance removed for user_id: {user_id}")
 
+def pending_expired():
+    started = session.get("pending_started")
+    if not isinstance(started, (int, float)):
+        return True 
+    return time.time() - started >= PENDING_SECONDS
 
+def set_login_cooldown(user_id):
+    init_totp_db()
+    lockout_until = time.time() + 60 # 1 minute lockout
+    conn = sqlite3.connect(TOTP_DB_PATH)
+    try:
+        # Ensure a row exists even if the user timed out during /setup-2fa before completing it
+        conn.execute(
+            """
+            INSERT INTO totp_secrets (user_id, totp_secret, failed_attempts, lockout_until, confirmed, last_step)
+            VALUES (?, '', 0, ?, 0, 0)
+            ON CONFLICT(user_id) DO UPDATE SET
+                lockout_until = MAX(totp_secrets.lockout_until, excluded.lockout_until)
+            """,
+            (user_id, lockout_until),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+    return lockout_until
+
+def get_lockout_remaining(user_id):
+    if not user_id:
+        return 0
+    row = get_totp_record(user_id)
+    if not row:
+        return 0
+    remaining = int(row[2] - time.time())
+    return max(0, remaining)
+
+def reject_if_pending_expired():
+    """Return a redirect if the pending login is missing or expired, else None."""
+    if "pending_mfa_user_id" not in session:
+        return abort(404)
+    if pending_expired():
+        timed_out_user_id = session.get("pending_mfa_user_id")
+        logging.warning(f"Pending MFA expired | user_id={session.get('pending_mfa_user_id')}")
+        if timed_out_user_id:
+            set_login_cooldown(timed_out_user_id)
+        session.clear()
+        resp = make_response(render_template_string(TIMEOUT_HTML, minutes=PENDING_SECONDS // 60), 401)
+        resp.headers["Cache-Control"] = "no-store"
+        return resp
+    return None
 
 @mfa_bp.route('/setup-2fa', methods=['GET', 'POST'])
 def setup_2fa_page():
     if 'pending_mfa_user_id' not in session:
         return abort(404)
+
+    blocked = reject_if_pending_expired()
+    if blocked:
+        return blocked
 
     user_id = session['pending_mfa_user_id']
     username = get_username_by_id(user_id)   # defined before any logging
@@ -243,6 +295,10 @@ def setup_2fa_page():
 def verify_code_page():
     if 'pending_mfa_user_id' not in session:
         return abort(404)
+
+    blocked = reject_if_pending_expired()
+    if blocked:
+        return blocked
 
     user_id = session['pending_mfa_user_id']
     if not has_totp_secret(user_id):
@@ -407,3 +463,23 @@ VERIFY_HTML = '''
 </html>
 '''
 
+TIMEOUT_HTML = '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Session Timed Out</title>
+    <noscript><meta http-equiv="refresh" content="5;url={{ url_for('staff.home') }}"></noscript>
+</head>
+<body>
+    <h2>Your sign-in timed out</h2>
+    <p>You did not finish two-factor authentication.
+       Please sign in again.</p>
+    <p><a href="{{ url_for('staff.home') }}">Return to login</a></p>
+    <script>
+        alert("Your sign-in timed out after {{ minutes }} minutes. Please log in again.");
+        window.location.href = "{{ url_for('staff.home') }}";
+    </script>
+</body>
+</html>
+'''
