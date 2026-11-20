@@ -211,16 +211,23 @@ def test_five_wrong_codes_lock_setup(setup):
     assert client.get(BASE + "/staff").status_code == 403
 
 
-@pytest.mark.xfail(strict=True, reason="Shared MFA routes do not enforce pending expiry yet; owner dependency")
 def test_pending_campus_mfa_expires(setup):
+    # Shared MFA now owns expiry rejection and returns its timeout page.
     client = begin_campus_mfa(setup)
 
     with client.session_transaction(base_url=BASE) as saved:
         saved["pending_started"] = time.time() - mfa.PENDING_SECONDS - 1
 
     response = client.get(BASE + "/verify-code")
-    assert response.status_code == 302
-    assert response.headers["Location"] == "/campus"
+    assert response.status_code == 401
+    assert "Your sign-in timed out" in response.text
+    assert response.headers["Cache-Control"] == "no-store"
+
+    with client.session_transaction(base_url=BASE) as saved:
+        assert "pending_mfa_user_id" not in saved
+        assert "authenticated_user_id" not in saved
+        assert not saved.get("mfa_verified")
+
     assert client.get(BASE + "/staff").status_code == 403
 
 
