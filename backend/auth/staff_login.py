@@ -8,7 +8,7 @@
 import os
 import logging
 from flask import Flask, render_template_string, request, redirect, url_for, session, Blueprint
-
+import subprocess
 
 try:
     from .database import get_user_by_username
@@ -149,6 +149,11 @@ def recover_account():
         </form>
 
         <br>
+        
+        <form action="/send-recovery-code" method="POST">
+            <button type="submit">Send Recovery Code</button>
+        </form>
+        <br>
 
         <a href="/">Return to Login</a>
     """)
@@ -162,6 +167,23 @@ def logout():
 
     # Send the user back to the login page
     return redirect(url_for("staff.home"))
+
+@staff_bp.route("/send-recovery-code", methods=["POST"])
+def send_recovery_code():
+   try:
+        result = subprocess.run(
+            ["python", "HashFunction.py"],
+            capture_output=True,
+            text=True,
+            cwd=os.path.dirname(os.path.abspath(__file__))
+        )
+        if result.returncode == 0:
+            return "Recovery code sent. Check your email.", 200
+        else:
+            return f"Failed to send code: {result.stderr}", 500
+   except Exception as e:
+        return f"Error: {e}", 500
+
 
 
 
