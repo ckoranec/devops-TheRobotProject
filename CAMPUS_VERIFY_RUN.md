@@ -42,9 +42,9 @@ PASSED
 - Remembered campus login skips the repeated campus password prompt.
 
 ## Outstanding
-- Live changed-token and expired-token demonstrations.
+- COMPLETED 2026-11-20: live changed-token and expired-token demonstrations; evidence below.
 - Final logging coverage review.
-- Provider logout browser confirmation.
+- COMPLETED 2026-11-20: provider logout and restored credential prompt; evidence below.
 - Under-10-second measurements by login scenario.
 - Fresh-clone verification.
 - Shared pending-MFA expiry remains a known gap.
@@ -70,3 +70,22 @@ Both live token-refusal demonstrations passed.
 No passwords, token values, or signing keys are included.
 The exact running revision was not captured by the demonstration script.
 Provider logout, timing, fresh-clone setup, and MFA expiry are not established by this run.
+
+## Provider logout verification - 2026-11-20
+
+- David signed in as campus_staff in the browser.
+- David confirmed logout at the campus provider.
+- The provider recorded the logout event shown below.
+- David started another campus sign-in in the same browser.
+- The campus username/password form appeared again.
+- This confirms provider logout ended remembered campus access in this browser flow.
+- This does not claim that provider logout also ends an existing staff session.
+
+Observed provider log:
+
+    2026-11-20 10:45:14,476 | INFO | event=campus_provider | result=logout | campus_id=-
+
+Latest supplied Windows integration result after merging team updates:
+83 passed, 2 xfailed in 68.79s.
+Merged revision: 3115f5444364f4b26e7b54969cca23ccf7bf4452.
+The two expected failures concern shared pending-MFA expiry enforcement.
