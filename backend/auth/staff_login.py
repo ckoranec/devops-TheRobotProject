@@ -92,7 +92,7 @@ def begin_staff_login(staff_id):
     # Identifies the staff user who needs to complete MFA
     session["pending_mfa_user_id"] = staff_id
     session["mfa_verified"] = False
-
+    session["pending_started"] = time.time()
     # Sends the staff user to Shek's MFA verification page
     return redirect(url_for("mfa.verify_code_page"))
 
