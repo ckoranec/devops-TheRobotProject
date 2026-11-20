@@ -6,6 +6,8 @@
 
 # import libaries and tools for html login, authentication, sessions and Pw/user read
 import os
+from mfa import get_lockout_remaining
+
 import logging
 import time
 
@@ -93,25 +95,35 @@ def login():
     # Clear any previous authentication session before checking credentials
     session.clear()
 
-    # Retrieve the username and the password from the HTML form
+    # Retrieve the username and password from the HTML form
     username = request.form.get("username", "")
     password = request.form.get("password", "")
 
-    # Search the database for the entered  username
+    # Search the database for the entered username
     user = get_user_by_username(username)
 
-    # Refuse a login if the user does not exist
+    # Refuse login if the username does not exist
     if user is None:
+        logging.warning("Staff login failed: unknown username")
         return "Invalid username or password.", 401
 
-    # The database returns the following: (id, username, password_hash)
+    # The database returns: (id, username, password_hash)
     stored_hash = user[2]
 
-    # Compares the entered password against the stored bcrypt hash
+    # Refuse login if the password is incorrect
     if not verify_password(stored_hash, password):
+        logging.warning("Staff login failed: invalid password for user ID %s", user[0])
         return "Invalid username or password.", 401
 
-    # Credentials are verified, initiates the shared staff MFA login process
+    remaining = get_lockout_remaining(user[0])
+    if remaining > 0:
+        logging.warning(f"Blocked login during cooldown | user_id={user[0]} ({username}) | remaining={remaining}s")
+        return f"Too many attempts or recent sign-in timeout. Try again in {remaining} seconds.", 429
+
+    # Record successful password verification
+    logging.info("Staff password verified for user ID %s; MFA pending", user[0])
+
+    # Credentials are verified; initiate the shared MFA process
     return begin_staff_login(user[0])
 
 def begin_staff_login(staff_id):
