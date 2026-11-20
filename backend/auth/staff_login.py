@@ -7,6 +7,8 @@
 # import libaries and tools for html login, authentication, sessions and Pw/user read
 import os
 import logging
+import time
+
 from flask import Flask, render_template_string, request, redirect, url_for, session, Blueprint
 
 
@@ -20,6 +22,33 @@ except ImportError:
     from mfa import mfa_bp, init_totp_db
 
 staff_bp = Blueprint("staff", __name__)
+IDLE_TIMEOUT_SECONDS = 15 * 60
+
+@staff_bp.before_request
+def check_staff_idle_timeout():
+
+    # Only check fully authenticated staff sessions
+    if not session.get("mfa_verified") or not session.get("authenticated_user_id"):
+        return
+
+    current_time = time.time()
+    last_activity = session.get("last_activity")
+
+    # Initialize activity tracking using the existing login timestamp
+    if last_activity is None:
+        last_activity = session.get("pending_started")
+
+        if last_activity is None:
+            session.clear()
+            return redirect(url_for("staff.home"))
+
+    # Log out after 15 minutes without activity
+    if current_time - last_activity >= IDLE_TIMEOUT_SECONDS:
+        session.clear()
+        return redirect(url_for("staff.home"))
+
+    # Record the latest authenticated activity
+    session["last_activity"] = current_time
 
 @staff_bp.route("/")
 def home():
