@@ -174,6 +174,11 @@ def recover_account():
 
             <br><br>
 
+            <!-- Placeholder for Satchi's recovery functionality -->
+            <button type="button" disabled>Send Recovery Code</button>
+
+            <br><br>
+
             <button type="submit">Verify Recovery Code</button>
         </form>
 
