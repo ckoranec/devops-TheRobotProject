@@ -6,7 +6,7 @@
 
 # import libaries and tools for html login, authentication, sessions and Pw/user read
 import os
-from mfa import get_lockout_remaining
+from .mfa import get_lockout_remaining
 
 import logging
 import time
