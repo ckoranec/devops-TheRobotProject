@@ -4,35 +4,23 @@ import secrets
 import time
 
 from flask import Flask
+from .keys import resolve_secret
 from .database import DB_FILE, create_staff_campus_mapping
 from .staff_login import staff_bp
 from .mfa import mfa_bp, init_totp_db
 from .campus_routes import register_campus_sso
 from .campus_directory import create_campus_table
 
-def ensure_secret(name):
-    """Use the env value if valid; otherwise generate one (dev) or fail (production)."""
-    value = os.environ.get(name, "")
-    if len(value) >= 32:
-        return value
-    if os.environ.get("APP_ENV") == "production":
-        raise RuntimeError(f"Set {name} to a random value of at least 32 characters.")
-    value = secrets.token_hex(32)
-    os.environ[name] = value      # so read_secret() and the reloader child see it
-    print(f"WARNING: {name} not set. Generated temporary dev key.")
-    return value
 
 def create_app():
     app = Flask(__name__)
 
-    app.secret_key = ensure_secret("FLASK_SECRET_KEY")
-    ensure_secret("CAMPUS_SSO_SIGNING_KEY")
-    ensure_secret("CAMPUS_IDP_COOKIE_SECRET")
-
-    app.config.update(
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE="Lax",
-        SESSION_COOKIE_SECURE=os.environ.get("APP_ENV") == "production",
+    app.secret_key = resolve_secret("FLASK_SECRET_KEY", allow_ephemeral=True)
+    app.config["CAMPUS_SSO_SIGNING_KEY"] = resolve_secret(
+        "CAMPUS_SSO_SIGNING_KEY", allow_ephemeral=False
+    )
+    app.config["CAMPUS_IDP_COOKIE_SECRET"] = resolve_secret(
+        "CAMPUS_IDP_COOKIE_SECRET", allow_ephemeral=True
     )
 
     logging.basicConfig(
