@@ -1,4 +1,4 @@
-﻿# Campus integration verification
+# Campus integration verification
 
 Recorded: 2026-11-19T12:52:04.1297269-05:00
 Tested commit: 2f8c3191e9a7cf919003079f8ce4e111531a444e
@@ -49,3 +49,24 @@ PASSED
 - Fresh-clone verification.
 - Shared pending-MFA expiry remains a known gap.
 - Customer-order versus staff-only scope clarification.
+
+## Live token-refusal verification - 2026-11-20
+
+Live HTTP demonstration against the running local provider and staff application.
+
+- Changed exactly one character of a genuine provider token.
+- Callback returned HTTP 403; protected staff page returned HTTP 403.
+- Obtained a fresh token and left it unchanged for 65 seconds.
+- Expired-token callback returned HTTP 403; staff page returned HTTP 403.
+- Provider remembered the campus login between the two requests.
+- Verified the expected newly appended application log entries.
+
+Observed logs:
+
+    2026-11-20 09:35:35 | INFO | event=campus_sso | result=invalid_signature | campus_id=-
+    2026-11-20 09:36:40 | INFO | event=campus_sso | result=expired_token | campus_id=-
+
+Both live token-refusal demonstrations passed.
+No passwords, token values, or signing keys are included.
+The exact running revision was not captured by the demonstration script.
+Provider logout, timing, fresh-clone setup, and MFA expiry are not established by this run.
