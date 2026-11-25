@@ -1,104 +1,57 @@
 # Campus sign-in: current verification status
 
-Updated: 2026-11-25
-Owner: David Noyes
-Card: Easy Login with Campus Credentials
-Status: In progress
+Updated: 2026-11-25 | Owner: David Noyes
+Implemented staff-SSO scope: verified. Overall card: In progress / awaiting acceptance.
 
-## Latest verified contribution
+## Completed evidence
 
-Revision: 92e3718870181be70a892bfe3b320a5a974f332a
+- Reviewed application baseline: 69b830ccb2b5b99af667e621da41cf8c55c5b617.
+- Latest supplied Windows suite: 121 passed in 66.66 seconds; no expected failures.
+- Receiver-capacity refusal and expiry recovery: passed, committed as b49e84d.
+- Explicit campus outcome logging: source-reviewed and exercised by outcome-focused
+  tests, including request guards, credentials, token refusals, mapping/database
+  failures, session expiry/revocation, provider logout and request capacity.
+- This is not 100% branch coverage or an audit of every infrastructure exception.
+- Shared mapping and begin_staff_login are imported from Colin; Shek owns shared MFA.
+- Campus blueprint registered in shared app; launcher supplies matching signing keys.
+- Remembered provider login, short-lived proof and provider logout are implemented.
+- Live changed/expired token refusals and logs are documented in CAMPUS_VERIFY_RUN.md.
+- Fresh-clone staff/student setup was demonstrated at de06780 (historical revision).
+- Five independent application transitions took approximately 1.3, 2.6, 3.9, 5.2,
+  and 6.5 seconds at b49e84d. Coty's reported criterion excludes human entry time.
+- Browser smoke test completed November 25 at repository HEAD 69b830c. Supplied
+  Git status showed documentation changes only; no tracked application edits.
+- Staff denied before MFA, admitted after MFA, denied after logout; remembered
+  provider login still requested MFA; provider logout restored the form;
+  campus_student authenticated at provider but was refused staff access.
+- Logs: staff MFA success at 15:50:20; provider reuse at 15:51:22; provider logout
+  at 15:52:48; student password acceptance and no_staff_role at 15:53:33.
+- Earlier Caps Lock credential errors and MFA expirations were resolved before
+  successful completion. No password or authenticator reset was performed.
 
-David's supplied Windows results:
-- New outcome-logging tests: 16 passed in 12.69 seconds.
-- Complete campus integration suite: 120 passed in 68.65 seconds.
-- No failed or expected-failure tests were reported.
-- Commit and push succeeded; the subsequent Git check reported a clean
-  working folder and zero local-only or remote-only commits.
+## Documentation deliverables prepared
 
-The tests ran before committing the tested changes. The pull before
-pushing reported "Already up to date."
+README_CAMPUS_SSO.md is a compact quick start with a one-page PDF rendering.
+CAMPUS_SETUP_DETAILS.md preserves the detailed initializer, separate-terminal
+instructions, all five variable names, account guidance and troubleshooting.
+The printable Campus SSO demonstration guide explains code, ownership and evidence.
+These prepared documents must be saved/reviewed and committed through David's clone;
+their generation does not claim they have already been pushed.
 
-Test-suite duration is not a measurement of login speed.
+## Remaining decisions, not unperformed smoke tests
 
-## Working integration
+1. Shared MFA duration: the supplied local source and reviewed baseline still show
+   PENDING_SECONDS =30. Shek reports 300; verify the published change after pulling.
+   Expiry enforcement already passes, but that does not establish five minutes.
+2. Customer-order scope: detailed milestones use the staff destination; customer
+   ordering/tracking integration was not demonstrated. Obtain Coty's acceptance
+   of the staff scope or the customer destination and owner interface.
 
-- Campus sign-in uses Colin's campus-to-staff mapping.
-- Campus sign-in imports Colin's shared begin_staff_login function.
-- Shek's shared application registers the campus blueprint.
-- A fresh staff login still requires staff MFA.
-- Remembered campus authentication skips repeated campus password entry.
-- Campus provider logout ends remembered campus authentication.
-- Provider logout and staff logout are separate operations.
-- The launcher starts both services with matching token-signing keys.
+No pending item remains to rerun the November 25 smoke test or create this guide.
+A later application change may justify a new regression/smoke run.
 
-## Logging verification
+## Supporting records
 
-Existing automated tests and live evidence cover:
-- Accepted campus identity and refusal of an identity without staff mapping.
-- Changed-token and expired-token refusals.
-- Remembered campus login.
-
-The new guard tests cover:
-- Unexpected hostname and nonlocal address refusals.
-- Oversized requests.
-- Pending-MFA expiry encountered on campus routes.
-- An unavailable staff mapping database.
-
-The new outcome tests cover:
-- Expired provider forms and missing request state.
-- Invalid form protection values.
-- Empty usernames and passwords.
-- An unavailable campus directory.
-- Provider session capacity.
-- An account disappearing during authentication.
-- Missing tokens, wrong audience, and wrong request state.
-- A callback without its original pending request.
-- Expired, unknown, and revoked remembered sessions.
-- Refused and successful provider logout.
-
-The tests check relevant log messages and refusal behavior using
-temporary accounts and databases. They include checks that submitted
-passwords, tokens, cookies, or form values are not present in captured
-logs, as applicable to each test.
-
-This is an outcome-focused review, not a claim of 100% code coverage.
-Receiver request-capacity logging is present in the reviewed source;
-a targeted runtime assertion for that path remains to be recorded
-before calling the logging test inventory complete.
-
-## Shared MFA status
-
-Pending-MFA expiry enforcement now passes the integration tests.
-Earlier expected failures in CAMPUS_VERIFY_RUN.md are historical.
-
-The latest supplied local setting was PENDING_SECONDS = 30.
-Requested 300 seconds. Confirm the owner-controlled duration
-change separately; successful expiry tests alone do not prove that
-the configured duration is five minutes.
-
-## Previously demonstrated
-
-See CAMPUS_VERIFY_RUN.md for dated evidence:
-- Staff completes MFA and reaches the staff welcome page.
-- A campus student without staff mapping is refused.
-- Live changed-token and expired-token requests are refused and logged.
-- Provider logout restores the campus credential prompt.
-- Fresh-clone setup, new MFA enrollment, and staff/student outcomes
-  were verified at revision de06780.
-
-The earlier fresh-clone demonstration does not establish that every
-later revision has also been tested from a fresh clone.
-
-## Remaining work
-
-- Complete the final logging test inventory and document its scope.
-- Record login timings against the under-10-second requirement.
-- Label fresh login, remembered-provider login plus MFA, and existing
-  verified staff access as different timing scenarios.
-- Confirm the current revision's browser flow after the recent changes.
-- Confirm the requested five-minute MFA duration with its shared owner.
-- Clarify customer ordering/tracking versus the demonstrated staff page.
-- Confirm the setup README meets one-page requirement.
-
-Keep Card 4 In progress.
+CAMPUS_SMOKE_TEST_2026-11-25.md; CAMPUS_VERIFY_RUN.md;
+CAMPUS_TIMING_VERIFICATION.md; campus test files in backend/auth and campus_sso.
+Passwords, tokens, signing keys and MFA codes are excluded from these documents.
